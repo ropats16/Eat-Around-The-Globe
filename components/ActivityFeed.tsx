@@ -83,7 +83,7 @@ export default function ActivityFeed() {
       transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
       className="absolute bottom-6 left-12 w-96 pointer-events-auto"
     >
-      <div className="bg-gray-900/70 backdrop-blur-sm rounded-2xl shadow-2xl p-5 border border-gray-700/30">
+      <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl p-5 border border-gray-700/30">
         <div className="space-y-3">
           <AnimatePresence mode="popLayout">
             {visibleFoods.map((food, index) => (
