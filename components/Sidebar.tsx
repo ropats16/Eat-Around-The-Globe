@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useFoodGlobeStore } from "@/lib/store";
-import { UtensilsCrossed, MapPin, Filter, Globe2 } from "lucide-react";
+import { UtensilsCrossed, Filter, Globe2 } from "lucide-react";
 import { FoodCategory, DietaryTag } from "@/lib/types";
 import { useState } from "react";
 
@@ -62,7 +62,7 @@ export default function Sidebar() {
       initial={{ x: -400, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="fixed top-8 left-8 z-20 w-1/4"
+      className="absolute top-6 left-12 w-96 pointer-events-auto"
     >
       {/* Main Card - White style like DataFast */}
       <div

@@ -48,7 +48,7 @@ export default function ActivityFeed() {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-      className="fixed bottom-6 left-6 w-96 z-20"
+      className="absolute bottom-6 left-12 w-96 pointer-events-auto"
     >
       <div className="bg-white rounded-2xl shadow-2xl p-4 border border-gray-100">
         <div className="flex items-center gap-2 mb-3">

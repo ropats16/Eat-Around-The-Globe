@@ -52,33 +52,11 @@ export default function Home() {
             <Globe />
           </div>
 
-          {/* Three Column Layout with Margins */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="h-full mx-4 md:mx-8 lg:mx-12 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
-              {/* Left Third - Info Boxes */}
-              <div className="hidden lg:flex flex-col gap-4 py-6 pointer-events-auto">
-                <Sidebar />
-                <ActivityFeed />
-              </div>
-
-              {/* Middle Third - Globe (no overlay, just for spacing) */}
-              <div className="hidden lg:block" />
-
-              {/* Right Third - Search & Details */}
-              <div className="flex flex-col gap-4 py-6 pointer-events-auto">
-                <SearchBar />
-                <DetailPanel />
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile: Show components in original positions */}
-          <div className="lg:hidden">
-            <SearchBar />
-            <Sidebar />
-            <ActivityFeed />
-            <DetailPanel />
-          </div>
+          {/* UI Components */}
+          <Sidebar />
+          <ActivityFeed />
+          <SearchBar />
+          <DetailPanel />
 
           {/* Warnings */}
           {(!mapsInitialized || !mapboxAvailable) && (
@@ -89,7 +67,9 @@ export default function Home() {
                 </p>
                 <div className="text-xs text-gray-600 space-y-1">
                   {!mapboxAvailable && (
-                    <p>• Add NEXT_PUBLIC_MAPBOX_TOKEN to .env.local for globe</p>
+                    <p>
+                      • Add NEXT_PUBLIC_MAPBOX_TOKEN to .env.local for globe
+                    </p>
                   )}
                   {!mapsInitialized && (
                     <p>
