@@ -10,6 +10,10 @@ import {
   ExternalLink,
   Share2,
   Heart,
+  Phone,
+  Clock,
+  Award,
+  Sparkles,
 } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
@@ -24,6 +28,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   vegetarian: "Vegetarian",
   "fast-food": "Fast Food",
   bakery: "Bakery",
+};
+
+const DIETARY_LABELS: Record<string, string> = {
+  vegan: "Vegan",
+  vegetarian: "Vegetarian",
+  "gluten-free": "Gluten-Free",
+  halal: "Halal",
+  kosher: "Kosher",
+  "dairy-free": "Dairy-Free",
+  "nut-free": "Nut-Free",
 };
 
 export default function DetailPanel() {
@@ -46,8 +60,8 @@ export default function DetailPanel() {
         await navigator.clipboard.writeText(window.location.href);
         alert("Link copied to clipboard!");
       }
-    } catch (error) {
-      console.error("Share failed:", error);
+    } catch {
+      console.log("Share canceled");
     }
   };
 
@@ -64,271 +78,304 @@ export default function DetailPanel() {
       {isDetailPanelOpen && (
         <div className="fixed top-20 right-12 w-96 z-50 pointer-events-auto">
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="relative bg-white rounded-3xl shadow-[0_2px_12px_rgba(32,33,36,0.28)] overflow-hidden max-h-[calc(100vh-7rem)] flex flex-col"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-h-[calc(100vh-7rem)] flex flex-col"
           >
-              {/* Close Button */}
-              <button
-                onClick={closeDetailPanel}
-                className="absolute top-3 right-3 z-20 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-700" />
-              </button>
+            {/* Close Button */}
+            <button
+              onClick={closeDetailPanel}
+              className="absolute top-4 right-4 z-20 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-700" />
+            </button>
 
-              {/* Scrollable Content */}
-              <div className="overflow-y-auto custom-scrollbar">
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto custom-scrollbar">
+              {/* Images */}
+              {selectedFood.images.length > 0 && (
+                <div className="relative h-56 bg-gray-100">
+                  <Image
+                    src={selectedFood.images[currentImageIndex]}
+                    alt={selectedFood.name}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                  {selectedFood.images.length > 1 && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                      {selectedFood.images.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentImageIndex(idx)}
+                          className={`h-2 rounded-full transition-all ${
+                            idx === currentImageIndex
+                              ? "bg-white w-6 shadow-md"
+                              : "bg-white/70 w-2"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-                {/* Images */}
-                {selectedFood.images.length > 0 && (
-                  <div className="relative h-48 bg-gray-200">
-                    <Image
-                      src={selectedFood.images[currentImageIndex]}
-                      alt={selectedFood.name}
-                      fill
-                      className="object-cover"
-                      priority
-                    />
-                    {selectedFood.images.length > 1 && (
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                        {selectedFood.images.map((_, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setCurrentImageIndex(idx)}
-                            className={`h-2 rounded-full transition-all ${
-                              idx === currentImageIndex
-                                ? "bg-white w-6 shadow-md"
-                                : "bg-white/70 w-2"
-                            }`}
+              {/* Content */}
+              <div className="p-6 space-y-5">
+                {/* Title & Location */}
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                    {selectedFood.name}
+                  </h2>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <span className="text-xl">
+                      {getFlagEmoji(selectedFood.countryCode)}
+                    </span>
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm">
+                      {selectedFood.city}, {selectedFood.country}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Rating & Price */}
+                <div className="flex items-center gap-4">
+                  {selectedFood.rating && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 rounded-full border border-yellow-200">
+                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      <span className="text-sm font-semibold text-gray-900">
+                        {selectedFood.rating.toFixed(1)}
+                      </span>
+                      {selectedFood.totalReviews && (
+                        <span className="text-xs text-gray-500">
+                          ({selectedFood.totalReviews})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {selectedFood.priceRange && (
+                    <div className="flex items-center gap-0.5 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
+                      {Array.from({ length: selectedFood.priceRange }).map(
+                        (_, i) => (
+                          <DollarSign
+                            key={i}
+                            className="w-3.5 h-3.5 text-green-600"
                           />
-                        ))}
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Category & Dietary Tags */}
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-xs rounded-full font-medium border border-purple-200">
+                    {CATEGORY_LABELS[selectedFood.category]}
+                  </span>
+                  {selectedFood.dietaryInfo.map((diet) => (
+                    <span
+                      key={diet}
+                      className="px-3 py-1.5 bg-green-50 text-green-700 text-xs rounded-full font-medium border border-green-200"
+                    >
+                      {DIETARY_LABELS[diet]}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-200"></div>
+
+                {/* Description */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    About
+                  </h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {selectedFood.description}
+                  </p>
+                </div>
+
+                {/* Recommender Info */}
+                {selectedFood.recommender && (
+                  <div className="p-4 bg-linear-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Award className="w-4 h-4 text-purple-600" />
+                      Recommended by
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      {selectedFood.recommender.profilePicture ? (
+                        <Image
+                          src={selectedFood.recommender.profilePicture}
+                          alt={selectedFood.recommender.name}
+                          width={48}
+                          height={48}
+                          className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-300"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center ring-2 ring-purple-300">
+                          <span className="text-white font-bold text-lg">
+                            {selectedFood.recommender.name
+                              .charAt(0)
+                              .toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">
+                          {selectedFood.recommender.name}
+                        </p>
+                        {selectedFood.recommender.caption && (
+                          <p className="text-sm text-gray-600 mt-1 italic">
+                            "{selectedFood.recommender.caption}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Info */}
+                {(selectedFood.address ||
+                  selectedFood.phone ||
+                  selectedFood.isOpenNow !== undefined) && (
+                  <div className="space-y-3">
+                    {selectedFood.address && (
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <span className="text-sm text-gray-700">
+                          {selectedFood.address}
+                        </span>
+                      </div>
+                    )}
+                    {selectedFood.phone && (
+                      <div className="flex items-center gap-3">
+                        <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                        <span className="text-sm text-gray-700">
+                          {selectedFood.phone}
+                        </span>
+                      </div>
+                    )}
+                    {selectedFood.isOpenNow !== undefined && (
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-4 h-4 text-gray-400 shrink-0" />
+                        <span
+                          className={`text-sm font-medium ${
+                            selectedFood.isOpenNow
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {selectedFood.isOpenNow ? "Open now" : "Closed"}
+                        </span>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Content */}
-                <div className="p-5 space-y-4">
-                  {/* Title */}
-                  <div>
-                    <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                      {selectedFood.name}
-                    </h2>
-                  </div>
-
-                  {/* Location & Rating */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <span className="text-xl">
-                        {getFlagEmoji(selectedFood.countryCode)}
-                      </span>
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">
-                        {selectedFood.city}, {selectedFood.country}
-                      </span>
-                    </div>
-
-                    {/* Rating & Price */}
-                    <div className="flex items-center gap-4 text-sm">
-                      {selectedFood.rating && (
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                          <span className="font-medium text-gray-900">
-                            {selectedFood.rating.toFixed(1)}
-                          </span>
-                        </div>
-                      )}
-                      {selectedFood.priceRange && (
-                        <div className="flex items-center gap-1 text-gray-600">
-                          {Array.from({ length: selectedFood.priceRange }).map(
-                            (_, i) => (
-                              <DollarSign key={i} className="w-4 h-4" />
-                            )
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Category & Dietary Tags */}
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full font-medium">
-                        {CATEGORY_LABELS[selectedFood.category]}
-                      </span>
-                      {selectedFood.dietaryInfo.map((diet) => (
-                        <span
-                          key={diet}
-                          className="px-3 py-1 bg-green-50 text-green-700 text-xs rounded-full capitalize font-medium"
-                        >
-                          {diet}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Description */}
+                {/* Fun Facts */}
+                {selectedFood.funFacts && selectedFood.funFacts.length > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                      About
+                      Fun Facts
                     </h3>
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {selectedFood.description}
-                    </p>
-                  </div>
-
-                  {/* Recommender Info */}
-                  {selectedFood.recommender && (
-                    <div className="p-4 bg-linear-to-r from-green-50 to-blue-50 rounded-2xl border border-green-200">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <span className="text-green-600">✨</span>
-                        Recommended by
-                      </h3>
-                      <div className="flex items-start gap-3">
-                        {selectedFood.recommender.profilePicture ? (
-                          <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 ring-2 ring-green-300">
-                            <Image
-                              src={selectedFood.recommender.profilePicture}
-                              alt={selectedFood.recommender.name}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-linear-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shrink-0 ring-2 ring-green-300">
-                            {selectedFood.recommender.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900">
-                            {selectedFood.recommender.name}
-                          </p>
-                          {selectedFood.recommender.caption && (
-                            <p className="text-sm text-gray-600 mt-1 italic">
-                              &ldquo;{selectedFood.recommender.caption}&rdquo;
-                            </p>
-                          )}
-                          {/* Show category and dietary tags if provided */}
-                          {(selectedFood.recommender.category ||
-                            selectedFood.recommender.dietaryInfo) && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {selectedFood.recommender.category && (
-                                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full font-medium capitalize">
-                                  {selectedFood.recommender.category.replace(
-                                    "-",
-                                    " "
-                                  )}
-                                </span>
-                              )}
-                              {selectedFood.recommender.dietaryInfo?.map(
-                                (tag) => (
-                                  <span
-                                    key={tag}
-                                    className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full font-medium capitalize"
-                                  >
-                                    {tag}
-                                  </span>
-                                )
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Address */}
-                  {selectedFood.address && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                        Address
-                      </h3>
-                      <p className="text-sm text-gray-700">
-                        {selectedFood.address}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Fun Facts */}
-                  {selectedFood.funFacts && selectedFood.funFacts.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                        Fun Facts
-                      </h3>
-                      <ul className="space-y-1">
-                        {selectedFood.funFacts.map((fact, idx) => (
-                          <li
-                            key={idx}
-                            className="text-sm text-gray-700 flex items-start gap-2"
-                          >
-                            <span className="text-blue-600">•</span>
-                            <span>{fact}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* External Links */}
-                  {selectedFood.externalLinks && (
-                    <div className="space-y-2">
-                      {selectedFood.externalLinks.restaurant && (
-                        <a
-                          href={selectedFood.externalLinks.restaurant}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                    <ul className="space-y-2">
+                      {selectedFood.funFacts.map((fact, idx) => (
+                        <li
+                          key={idx}
+                          className="text-sm text-gray-700 flex items-start gap-2"
                         >
-                          <ExternalLink className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm text-gray-900">
-                            Visit Website
-                          </span>
-                        </a>
-                      )}
-                      {selectedFood.externalLinks.wiki && (
-                        <a
-                          href={selectedFood.externalLinks.wiki}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <ExternalLink className="w-4 h-4 text-purple-600" />
-                          <span className="text-sm text-gray-900">
-                            View on Maps
-                          </span>
-                        </a>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => setIsFavorite(!isFavorite)}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-all font-medium text-sm ${
-                        isFavorite
-                          ? "bg-red-500 text-white hover:bg-red-600"
-                          : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                      }`}
-                    >
-                      <Heart
-                        className={`w-5 h-5 ${isFavorite ? "fill-white" : ""}`}
-                      />
-                      <span>{isFavorite ? "Saved" : "Save"}</span>
-                    </button>
-                    <button
-                      onClick={handleShare}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-900 font-medium text-sm"
-                    >
-                      <Share2 className="w-5 h-5" />
-                      <span>Share</span>
-                    </button>
+                          <span className="text-purple-500 mt-1">•</span>
+                          <span>{fact}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
+                )}
+
+                {/* External Links */}
+                {selectedFood.externalLinks && (
+                  <div className="space-y-2">
+                    {selectedFood.externalLinks.restaurant && (
+                      <a
+                        href={selectedFood.externalLinks.restaurant}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                      >
+                        <ExternalLink className="w-4 h-4 text-purple-600" />
+                        <span className="text-sm text-gray-900 font-medium">
+                          Visit Website
+                        </span>
+                      </a>
+                    )}
+                    {selectedFood.externalLinks.wiki && (
+                      <a
+                        href={selectedFood.externalLinks.wiki}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                      >
+                        <ExternalLink className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm text-gray-900 font-medium">
+                          View on Maps
+                        </span>
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Divider */}
+                <div className="border-t border-gray-200"></div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsFavorite(!isFavorite)}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-all font-medium text-sm border ${
+                      isFavorite
+                        ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50"
+                    }`}
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${isFavorite ? "fill-white" : ""}`}
+                    />
+                    <span>{isFavorite ? "Saved" : "Save"}</span>
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white hover:bg-gray-50 rounded-lg transition-colors text-gray-700 font-medium text-sm border border-gray-200"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Share</span>
+                  </button>
                 </div>
               </div>
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
+        </div>
       )}
+
+      {/* Custom scrollbar styles */}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+      `}</style>
     </AnimatePresence>
   );
 }
