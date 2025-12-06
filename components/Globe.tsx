@@ -125,20 +125,27 @@ export default function Globe() {
     filteredFoods.forEach((food) => {
       if (!map.current) return;
 
-      // Create marker element using MapPin SVG
+      // Create marker element - outer container for Mapbox positioning
       const el = document.createElement("div");
       el.className = "food-marker";
       el.style.cssText = `
         width: 40px;
         height: 40px;
         cursor: pointer;
+      `;
+
+      // Create inner wrapper for hover animation (so it doesn't interfere with Mapbox positioning)
+      const innerWrapper = document.createElement("div");
+      innerWrapper.style.cssText = `
+        width: 100%;
+        height: 100%;
         transition: transform 0.2s;
         filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
       `;
 
       // Add SVG with category color (matching MapPin.svg structure with white star)
       const color = CATEGORY_COLORS[food.category] || "#D05CE4";
-      el.innerHTML = `
+      innerWrapper.innerHTML = `
         <svg width="40" height="40" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g clip-path="url(#clip0_${food.id})">
             <path d="M160 20C130.836 20.0331 102.877 31.633 82.2548 52.2548C61.633 72.8766 50.0331 100.836 50 130C50 224.125 150 295.212 154.263 298.188C155.944 299.365 157.947 299.997 160 299.997C162.053 299.997 164.056 299.365 165.737 298.188C170 295.212 270 224.125 270 130C269.967 100.836 258.367 72.8766 237.745 52.2548C217.123 31.633 189.164 20.0331 160 20Z" fill="${color}"/>
@@ -152,12 +159,16 @@ export default function Globe() {
         </svg>
       `;
 
+      // Append inner wrapper to outer element
+      el.appendChild(innerWrapper);
+
+      // Apply hover effects to inner wrapper, not the outer Mapbox-positioned element
       el.onmouseenter = () => {
-        el.style.transform = "scale(1.2)";
+        innerWrapper.style.transform = "scale(1.2)";
       };
 
       el.onmouseleave = () => {
-        el.style.transform = "scale(1)";
+        innerWrapper.style.transform = "scale(1)";
       };
 
       el.onclick = () => {
@@ -175,7 +186,7 @@ export default function Globe() {
       // Create marker with proper anchor (bottom center of pin)
       const marker = new mapboxgl.Marker({
         element: el,
-        anchor: 'bottom'
+        anchor: "bottom",
       })
         .setLngLat([food.coordinates[1], food.coordinates[0]])
         .setPopup(popup)
@@ -183,7 +194,7 @@ export default function Globe() {
 
       markersRef.current.push(marker);
     });
-  }, [foods]);
+  }, [getFilteredFoods, selectFood, foods]);
 
   // Handle globe centering
   useEffect(() => {
@@ -235,9 +246,9 @@ export default function Globe() {
       el.appendChild(innerWrapper);
 
       // Add pulsing animation if not already added
-      if (!document.getElementById('preview-pin-pulse')) {
+      if (!document.getElementById("preview-pin-pulse")) {
         const styleSheet = document.createElement("style");
-        styleSheet.id = 'preview-pin-pulse';
+        styleSheet.id = "preview-pin-pulse";
         styleSheet.textContent = `
           @keyframes pulse {
             0%, 100% {
@@ -264,7 +275,7 @@ export default function Globe() {
       // Create preview marker with proper anchor (bottom center of pin)
       const marker = new mapboxgl.Marker({
         element: el,
-        anchor: 'bottom'
+        anchor: "bottom",
       })
         .setLngLat([previewPlace.lng, previewPlace.lat])
         .setPopup(popup)
