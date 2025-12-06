@@ -2,7 +2,18 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Star, Phone, Globe as GlobeIcon, Clock, DollarSign, Plus, User, MessageSquare, Image as ImageIcon } from "lucide-react";
+import {
+  X,
+  MapPin,
+  Star,
+  Phone,
+  Globe as GlobeIcon,
+  Clock,
+  Plus,
+  User,
+  MessageSquare,
+  Image as ImageIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -145,9 +156,7 @@ export default function PlaceDetailsOverlay({
                 <div className="text-sm text-gray-700">
                   <details className="cursor-pointer">
                     <summary className="hover:text-gray-900">
-                      {place.opening_hours.open_now
-                        ? "Open now"
-                        : "Closed"}
+                      {place.opening_hours.open_now ? "Open now" : "Closed"}
                     </summary>
                     <ul className="mt-2 space-y-1 text-xs text-gray-600">
                       {place.opening_hours.weekday_text.map((day, index) => (
@@ -193,7 +202,7 @@ export default function PlaceDetailsOverlay({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                  <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
                     <ImageIcon className="w-4 h-4" />
                     Profile Picture URL (optional)
                   </label>
@@ -206,7 +215,7 @@ export default function PlaceDetailsOverlay({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                  <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
                     <MessageSquare className="w-4 h-4" />
                     Caption (optional)
                   </label>

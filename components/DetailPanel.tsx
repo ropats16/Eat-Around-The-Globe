@@ -172,9 +172,7 @@ export default function DetailPanel() {
 
               {/* Description */}
               <div>
-                <h3 className="text-sm font-semibold text-white mb-2">
-                  About
-                </h3>
+                <h3 className="text-sm font-semibold text-white mb-2">About</h3>
                 <p className="text-sm text-white/70 leading-relaxed">
                   {selectedFood.description}
                 </p>
@@ -182,14 +180,14 @@ export default function DetailPanel() {
 
               {/* Recommender Info */}
               {selectedFood.recommender && (
-                <div className="p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-2xl border border-green-500/20">
+                <div className="p-4 bg-linear-to-r from-green-500/10 to-blue-500/10 rounded-2xl border border-green-500/20">
                   <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                     <span className="text-green-400">✨</span>
                     Recommended by
                   </h3>
                   <div className="flex items-start gap-3">
                     {selectedFood.recommender.profilePicture ? (
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-green-400/50">
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 ring-2 ring-green-400/50">
                         <Image
                           src={selectedFood.recommender.profilePicture}
                           alt={selectedFood.recommender.name}
@@ -198,7 +196,7 @@ export default function DetailPanel() {
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 ring-2 ring-green-400/50">
+                      <div className="w-12 h-12 rounded-full bg-linear-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shrink-0 ring-2 ring-green-400/50">
                         {selectedFood.recommender.name.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -208,7 +206,7 @@ export default function DetailPanel() {
                       </p>
                       {selectedFood.recommender.caption && (
                         <p className="text-sm text-white/70 mt-1 italic">
-                          "{selectedFood.recommender.caption}"
+                          &ldquo;{selectedFood.recommender.caption}&rdquo;
                         </p>
                       )}
                     </div>
@@ -222,7 +220,9 @@ export default function DetailPanel() {
                   <h3 className="text-sm font-semibold text-white mb-2">
                     Address
                   </h3>
-                  <p className="text-sm text-white/70">{selectedFood.address}</p>
+                  <p className="text-sm text-white/70">
+                    {selectedFood.address}
+                  </p>
                 </div>
               )}
 
@@ -285,9 +285,7 @@ export default function DetailPanel() {
                   }`}
                 >
                   <Heart
-                    className={`w-5 h-5 ${
-                      isFavorite ? "fill-white" : ""
-                    }`}
+                    className={`w-5 h-5 ${isFavorite ? "fill-white" : ""}`}
                   />
                   <span className="text-sm font-medium">
                     {isFavorite ? "Saved" : "Save"}
