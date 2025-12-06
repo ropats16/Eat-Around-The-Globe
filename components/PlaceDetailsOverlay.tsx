@@ -13,6 +13,8 @@ import {
   User,
   MessageSquare,
   Image as ImageIcon,
+  UtensilsCrossed,
+  Leaf,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -139,13 +141,13 @@ export default function PlaceDetailsOverlay({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.2 }}
-        className="relative bg-white rounded-3xl shadow-[0_2px_12px_rgba(32,33,36,0.28)] overflow-hidden max-h-[calc(100vh-7rem)] flex flex-col"
+        className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-h-[calc(100vh-7rem)] flex flex-col"
       >
         {/* Scrollable wrapper */}
         <div className="overflow-y-auto custom-scrollbar">
           {/* Header with Photos */}
           {photos.length > 0 && (
-            <div className="relative h-48 bg-gray-200">
+            <div className="relative h-48 bg-gray-100">
               <div className="grid grid-cols-3 gap-1 h-full">
                 {photos.map((photo, index) => (
                   <div key={index} className="relative w-full h-full">
@@ -160,7 +162,7 @@ export default function PlaceDetailsOverlay({
               </div>
               <button
                 onClick={onClose}
-                className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+                className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors"
               >
                 <X className="w-4 h-4 text-gray-700" />
               </button>
@@ -168,35 +170,39 @@ export default function PlaceDetailsOverlay({
           )}
 
           {/* Content */}
-          <div className="p-5">
+          <div className="p-6 space-y-5">
             {/* Title and Rating */}
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 mb-1">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">
                 {place.name}
               </h2>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-3">
                 {place.rating && (
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-medium">{place.rating}</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 rounded-full border border-yellow-200">
+                    <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                    <span className="text-sm font-semibold text-gray-900">
+                      {place.rating}
+                    </span>
                     {place.user_ratings_total && (
-                      <span className="text-gray-500">
+                      <span className="text-xs text-gray-500">
                         ({place.user_ratings_total.toLocaleString()})
                       </span>
                     )}
                   </div>
                 )}
                 {priceLevel && (
-                  <span className="text-gray-600">• {priceLevel}</span>
+                  <span className="px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200 text-sm text-gray-700 font-medium">
+                    {priceLevel}
+                  </span>
                 )}
               </div>
             </div>
 
             {/* Details Grid */}
-            <div className="space-y-3 mb-5">
+            <div className="space-y-3">
               {place.formatted_address && (
                 <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+                  <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                   <span className="text-sm text-gray-700">
                     {place.formatted_address}
                   </span>
@@ -205,7 +211,7 @@ export default function PlaceDetailsOverlay({
 
               {place.international_phone_number && (
                 <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-gray-400 shrink-0" />
+                  <Phone className="w-4 h-4 text-gray-400 shrink-0" />
                   <span className="text-sm text-gray-700">
                     {place.international_phone_number}
                   </span>
@@ -214,12 +220,12 @@ export default function PlaceDetailsOverlay({
 
               {place.website && (
                 <div className="flex items-center gap-3">
-                  <GlobeIcon className="w-5 h-5 text-gray-400 shrink-0" />
+                  <GlobeIcon className="w-4 h-4 text-gray-400 shrink-0" />
                   <a
                     href={place.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline truncate"
+                    className="text-sm text-purple-600 hover:underline truncate"
                   >
                     {new URL(place.website).hostname}
                   </a>
@@ -228,11 +234,15 @@ export default function PlaceDetailsOverlay({
 
               {place.opening_hours?.weekday_text && (
                 <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+                  <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                   <div className="text-sm text-gray-700">
                     <details className="cursor-pointer">
-                      <summary className="hover:text-gray-900">
-                        {place.opening_hours.open_now ? "Open now" : "Closed"}
+                      <summary className="hover:text-gray-900 font-medium">
+                        {place.opening_hours.open_now ? (
+                          <span className="text-green-600">Open now</span>
+                        ) : (
+                          <span className="text-red-600">Closed</span>
+                        )}
                       </summary>
                       <ul className="mt-2 space-y-1 text-xs text-gray-600">
                         {place.opening_hours.weekday_text.map((day, index) => (
@@ -245,12 +255,15 @@ export default function PlaceDetailsOverlay({
               )}
             </div>
 
+            {/* Divider */}
+            <div className="border-t border-gray-200"></div>
+
             {/* Action Button / Form */}
             {!showForm ? (
               <Button
                 onClick={() => setShowForm(true)}
                 disabled={isSaving}
-                className="w-full bg-green-600 hover:bg-green-700 text-white rounded-full py-6 font-medium shadow-lg hover:shadow-xl transition-all"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-6 font-medium shadow-sm hover:shadow-md transition-all"
               >
                 <span className="flex items-center justify-center gap-2">
                   <Plus className="w-5 h-5" />
@@ -258,18 +271,18 @@ export default function PlaceDetailsOverlay({
                 </span>
               </Button>
             ) : (
-              <div className="space-y-4 p-4 bg-gray-50 rounded-2xl">
+              <div className="space-y-4 p-5 bg-gray-50 rounded-xl border border-gray-200">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <User className="w-5 h-5 text-green-600" />
+                  <User className="w-5 h-5 text-purple-600" />
                   Your Recommendation
                 </h3>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Your Name *
                     </label>
-                    <InputGroup className="bg-white rounded-md shadow-sm hover:shadow-md transition-shadow">
+                    <InputGroup className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
                       <InputGroupAddon>
                         <User className="w-4 h-4" />
                       </InputGroupAddon>
@@ -283,10 +296,10 @@ export default function PlaceDetailsOverlay({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Profile Picture URL (optional)
                     </label>
-                    <InputGroup className="bg-white rounded-md shadow-sm hover:shadow-md transition-shadow">
+                    <InputGroup className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
                       <InputGroupAddon>
                         <ImageIcon className="w-4 h-4" />
                       </InputGroupAddon>
@@ -300,7 +313,7 @@ export default function PlaceDetailsOverlay({
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                       <MessageSquare className="w-4 h-4" />
                       Caption (optional)
                     </label>
@@ -308,13 +321,14 @@ export default function PlaceDetailsOverlay({
                       placeholder="Why do you recommend this place?"
                       value={recommenderCaption}
                       onChange={(e) => setRecommenderCaption(e.target.value)}
-                      className="bg-white resize-none"
+                      className="bg-white resize-none text-sm"
                       rows={3}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <UtensilsCrossed className="w-4 h-4" />
                       Category (optional)
                     </label>
                     <select
@@ -322,7 +336,7 @@ export default function PlaceDetailsOverlay({
                       onChange={(e) =>
                         setSelectedCategory(e.target.value as FoodCategory | "")
                       }
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
                       <option value="">Select a category</option>
                       {CATEGORY_OPTIONS.map((opt) => (
@@ -334,7 +348,8 @@ export default function PlaceDetailsOverlay({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <Leaf className="w-4 h-4" />
                       Dietary Tags (optional)
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -343,10 +358,10 @@ export default function PlaceDetailsOverlay({
                           key={opt.value}
                           type="button"
                           onClick={() => toggleDietary(opt.value)}
-                          className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+                          className={`px-3 py-1.5 text-xs rounded-full font-medium transition-all border ${
                             selectedDietary.includes(opt.value)
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                              ? "bg-green-500 text-white border-green-500 shadow-sm"
+                              : "bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50"
                           }`}
                         >
                           {opt.label}
@@ -356,11 +371,11 @@ export default function PlaceDetailsOverlay({
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3 pt-2">
                   <Button
                     onClick={() => setShowForm(false)}
                     variant="outline"
-                    className="flex-1 rounded-full"
+                    className="flex-1 rounded-lg border-gray-200"
                     disabled={isSaving}
                   >
                     Cancel
@@ -368,7 +383,7 @@ export default function PlaceDetailsOverlay({
                   <Button
                     onClick={handleSubmit}
                     disabled={isSaving || !recommenderName.trim()}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-full"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
                   >
                     {isSaving ? (
                       <span className="flex items-center justify-center gap-2">
@@ -389,13 +404,32 @@ export default function PlaceDetailsOverlay({
                 href={place.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-center text-sm text-blue-600 hover:underline mt-3"
+                className="flex items-center justify-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-sm text-gray-700 font-medium border border-gray-200"
               >
+                <GlobeIcon className="w-4 h-4" />
                 View on Google Maps
               </a>
             )}
           </div>
         </div>
+
+        {/* Custom scrollbar styles */}
+        <style jsx>{`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+          }
+        `}</style>
       </motion.div>
     </AnimatePresence>
   );
