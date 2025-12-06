@@ -29,6 +29,10 @@ export interface FoodPlace {
   placeId?: string; // Google Places ID
   rating?: number;
   address?: string;
+  phone?: string; // Phone number
+  openingHours?: string[]; // Opening hours text
+  isOpenNow?: boolean; // Currently open status
+  totalReviews?: number; // Total number of reviews
   recommender?: Recommender; // Person who recommended this place
 }
 

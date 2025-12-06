@@ -215,13 +215,30 @@ export const convertGooglePlaceToFoodPlace = (
     ? place.photos.slice(0, 5).map((photo) => photo.getUrl({ maxWidth: 800 }))
     : [];
 
-  // Determine dietary info from types
+  // Determine dietary info from types and name/description
   const dietaryInfo: DietaryTag[] = [];
-  if (place.types?.includes("vegetarian_restaurant")) {
+  const searchText = `${place.name} ${place.types?.join(" ")}`.toLowerCase();
+
+  if (place.types?.includes("vegetarian_restaurant") || searchText.includes("vegetarian")) {
     dietaryInfo.push("vegetarian");
   }
-  if (place.types?.includes("vegan_restaurant")) {
+  if (place.types?.includes("vegan_restaurant") || searchText.includes("vegan")) {
     dietaryInfo.push("vegan");
+  }
+  if (searchText.includes("halal")) {
+    dietaryInfo.push("halal");
+  }
+  if (searchText.includes("kosher")) {
+    dietaryInfo.push("kosher");
+  }
+  if (searchText.includes("gluten-free") || searchText.includes("gluten free")) {
+    dietaryInfo.push("gluten-free");
+  }
+  if (searchText.includes("dairy-free") || searchText.includes("dairy free")) {
+    dietaryInfo.push("dairy-free");
+  }
+  if (searchText.includes("nut-free") || searchText.includes("nut free")) {
+    dietaryInfo.push("nut-free");
   }
 
   const foodPlace: FoodPlace = {
@@ -248,6 +265,10 @@ export const convertGooglePlaceToFoodPlace = (
     placeId: place.place_id,
     rating: place.rating,
     address: place.formatted_address,
+    phone: place.international_phone_number || place.formatted_phone_number,
+    openingHours: place.opening_hours?.weekday_text,
+    isOpenNow: place.opening_hours?.open_now,
+    totalReviews: place.user_ratings_total,
   };
 
   return foodPlace;
