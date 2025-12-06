@@ -1,0 +1,224 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Plus, Loader2, MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useFoodGlobeStore } from "@/lib/store";
+import {
+  getAutocompletePredictions,
+  getPlaceDetails,
+  convertGooglePlaceToFoodPlace,
+} from "@/lib/google-places";
+import PlaceDetailsOverlay from "./PlaceDetailsOverlay";
+import { Recommender } from "@/lib/types";
+
+export default function SearchBar() {
+  const [query, setQuery] = useState("");
+  const [predictions, setPredictions] = useState<
+    google.maps.places.AutocompletePrediction[]
+  >([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
+  const [isLoadingPlace, setIsLoadingPlace] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const { addFood, setIsAddingPlace, setPreviewPlace, centerGlobe } = useFoodGlobeStore();
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Debounced autocomplete search
+  useEffect(() => {
+    if (!query || query.length < 3) {
+      setPredictions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const results = await getAutocompletePredictions(query);
+        setPredictions(results);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error("Autocomplete error:", error);
+        setPredictions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const handleSelectPlace = async (placeId: string) => {
+    try {
+      setIsLoadingPlace(true);
+      setShowSuggestions(false);
+
+      const placeDetails = await getPlaceDetails(placeId);
+      setSelectedPlace(placeDetails);
+      setQuery("");
+      setPredictions([]);
+
+      // Show temporary pin on globe and center on it
+      const lat = placeDetails.geometry?.location?.lat();
+      const lng = placeDetails.geometry?.location?.lng();
+      if (lat !== undefined && lng !== undefined) {
+        setPreviewPlace({ lat, lng, name: placeDetails.name || "Selected Place" });
+        centerGlobe(lat, lng);
+      }
+    } catch (error) {
+      console.error("Error loading place:", error);
+      alert("Failed to load place details. Please try again.");
+    } finally {
+      setIsLoadingPlace(false);
+    }
+  };
+
+  const handleSaveToMap = async (recommender: Recommender) => {
+    if (!selectedPlace) return;
+
+    try {
+      setIsAdding(true);
+      setIsAddingPlace(true);
+
+      const foodPlace = convertGooglePlaceToFoodPlace(selectedPlace);
+      // Add recommender info to the food place
+      foodPlace.recommender = recommender;
+
+      addFood(foodPlace);
+      setSelectedPlace(null);
+      setPreviewPlace(null); // Clear temporary pin
+    } catch (error) {
+      console.error("Error adding place:", error);
+      alert("Failed to add place. Please try again.");
+    } finally {
+      setIsAdding(false);
+      setIsAddingPlace(false);
+    }
+  };
+
+  const handleCloseOverlay = () => {
+    setSelectedPlace(null);
+    setPreviewPlace(null); // Clear temporary pin
+  };
+
+  return (
+    <div ref={searchRef} className="w-[calc(100%-2rem)] sm:w-[calc(100%-3rem)] md:max-w-xl lg:w-full fixed lg:static top-4 sm:top-6 lg:top-0 left-1/2 lg:left-0 -translate-x-1/2 lg:translate-x-0 z-30">
+      <motion.div
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+        className="w-full"
+      >
+        {/* Main Search Input - Google Style */}
+        <div className="relative bg-white rounded-full shadow-[0_1px_6px_rgba(32,33,36,0.28)] hover:shadow-[0_2px_8px_rgba(32,33,36,0.28)] transition-shadow duration-200 px-4 sm:px-5 py-3 sm:py-3.5">
+          <div className="relative flex items-center gap-3 sm:gap-4">
+            <Search className="w-5 h-5 sm:w-5 sm:h-5 text-gray-500 shrink-0" />
+            <Input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => predictions.length > 0 && setShowSuggestions(true)}
+              placeholder="Search for a food place anywhere..."
+              className="flex-1 border-0 bg-transparent text-sm sm:text-base shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-auto py-0 placeholder:text-gray-500"
+              disabled={isAdding}
+            />
+            {isSearching && (
+              <Loader2 className="w-5 h-5 text-blue-500 animate-spin shrink-0" />
+            )}
+            {isAdding && (
+              <Loader2 className="w-5 h-5 text-green-500 animate-spin shrink-0" />
+            )}
+          </div>
+        </div>
+
+        {/* Suggestions Dropdown - Google Style */}
+        <AnimatePresence>
+          {showSuggestions && predictions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.15 }}
+              className="mt-2 bg-white rounded-3xl shadow-[0_1px_6px_rgba(32,33,36,0.28)] overflow-hidden max-h-[60vh] sm:max-h-96 overflow-y-auto"
+            >
+              <div className="py-2">
+                {predictions.map((prediction) => (
+                  <button
+                    key={prediction.place_id}
+                    onClick={() => handleSelectPlace(prediction.place_id)}
+                    disabled={isAdding}
+                    className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 sm:py-3 hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed group"
+                  >
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green-50 flex items-center justify-center shrink-0 group-hover:bg-green-100 transition-colors">
+                      <Plus className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-gray-900 truncate">
+                        {prediction.structured_formatting.main_text}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {prediction.structured_formatting.secondary_text}
+                      </div>
+                    </div>
+                    <MapPin className="w-4 h-4 text-gray-400 shrink-0 group-hover:text-gray-500 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Helper Text - Google Style */}
+        <AnimatePresence>
+          {query.length > 0 && query.length < 3 && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              className="mt-2 text-xs text-gray-500 text-center bg-white rounded-full py-2 px-4 shadow-[0_1px_6px_rgba(32,33,36,0.28)]"
+            >
+              Type at least 3 characters to search
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Place Details Overlay */}
+        {selectedPlace && (
+          <div className="mt-4">
+            <PlaceDetailsOverlay
+              place={selectedPlace}
+              onClose={handleCloseOverlay}
+              onSaveToMap={handleSaveToMap}
+              isSaving={isAdding}
+            />
+          </div>
+        )}
+
+        {/* Loading Place Details */}
+        {isLoadingPlace && (
+          <div className="mt-4 bg-white rounded-3xl shadow-[0_2px_12px_rgba(32,33,36,0.28)] p-8 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          </div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
