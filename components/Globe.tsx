@@ -23,8 +23,14 @@ export default function Globe() {
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const previewMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
-  const { getFilteredFoods, selectFood, foods, globeCenter, previewPlace } =
-    useFoodGlobeStore();
+  const {
+    getFilteredFoods,
+    selectFood,
+    foods,
+    globeCenter,
+    previewPlace,
+    centerGlobe,
+  } = useFoodGlobeStore();
 
   // Initialize map
   useEffect(() => {
@@ -173,6 +179,14 @@ export default function Globe() {
 
       el.onclick = () => {
         selectFood(food);
+        // Zoom to the pin location with moderate zoom level (directly, not using centerGlobe)
+        if (map.current) {
+          map.current.flyTo({
+            center: [food.coordinates[1], food.coordinates[0]],
+            zoom: 12,
+            duration: 1500,
+          });
+        }
       };
 
       // Create popup
@@ -194,14 +208,14 @@ export default function Globe() {
 
       markersRef.current.push(marker);
     });
-  }, [getFilteredFoods, selectFood, foods]);
+  }, [getFilteredFoods, selectFood, centerGlobe, foods]);
 
   // Handle globe centering
   useEffect(() => {
     if (globeCenter && map.current) {
       map.current.flyTo({
         center: [globeCenter.lng, globeCenter.lat],
-        zoom: 8,
+        zoom: 15,
         duration: 2000,
       });
     }
