@@ -208,6 +208,30 @@ export default function DetailPanel() {
                               &ldquo;{selectedFood.recommender.caption}&rdquo;
                             </p>
                           )}
+                          {/* Show category and dietary tags if provided */}
+                          {(selectedFood.recommender.category ||
+                            selectedFood.recommender.dietaryInfo) && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {selectedFood.recommender.category && (
+                                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full font-medium capitalize">
+                                  {selectedFood.recommender.category.replace(
+                                    "-",
+                                    " "
+                                  )}
+                                </span>
+                              )}
+                              {selectedFood.recommender.dietaryInfo?.map(
+                                (tag) => (
+                                  <span
+                                    key={tag}
+                                    className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full font-medium capitalize"
+                                  >
+                                    {tag}
+                                  </span>
+                                )
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

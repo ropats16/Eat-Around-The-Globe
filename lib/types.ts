@@ -2,6 +2,8 @@ export interface Recommender {
   name: string;
   profilePicture?: string;
   caption?: string;
+  category?: FoodCategory;
+  dietaryInfo?: DietaryTag[];
 }
 
 export interface FoodPlace {
