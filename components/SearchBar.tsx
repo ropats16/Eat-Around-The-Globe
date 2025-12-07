@@ -108,7 +108,19 @@ export default function SearchBar() {
       setIsAdding(true);
       setIsAddingPlace(true);
 
-      const foodPlace = convertGooglePlaceToFoodPlace(selectedPlace);
+      // Use recommender's category if provided, otherwise default to "traditional"
+      const category = recommender.category || "traditional";
+
+      // Use recommender's dietary info if provided (user selection takes precedence over auto-detection)
+      const dietaryInfo = recommender.dietaryInfo;
+
+      const foodPlace = convertGooglePlaceToFoodPlace(selectedPlace, category, dietaryInfo);
+
+      console.log("🔍 DIAGNOSTIC: About to add food");
+      console.log("📍 FoodPlace category:", foodPlace.category);
+      console.log("📍 FoodPlace dietaryInfo:", foodPlace.dietaryInfo);
+      console.log("👤 Recommender category:", recommender.category);
+      console.log("👤 Recommender dietaryInfo:", recommender.dietaryInfo);
 
       // Pass recommender as second parameter - store will handle merging duplicates
       addFood(foodPlace, recommender);

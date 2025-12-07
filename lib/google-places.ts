@@ -188,7 +188,8 @@ export const getPlaceDetails = async (
 // Convert Google Place to our FoodPlace format
 export const convertGooglePlaceToFoodPlace = (
   place: google.maps.places.PlaceResult,
-  category: FoodCategory = "traditional"
+  category: FoodCategory = "traditional",
+  overrideDietaryInfo?: DietaryTag[]
 ): Omit<FoodPlace, 'recommenders'> => {
   const lat = place.geometry?.location?.lat() || 0;
   const lng = place.geometry?.location?.lng() || 0;
@@ -215,31 +216,34 @@ export const convertGooglePlaceToFoodPlace = (
     ? place.photos.slice(0, 5).map((photo) => photo.getUrl({ maxWidth: 800 }))
     : [];
 
-  // Determine dietary info from types and name/description
-  const dietaryInfo: DietaryTag[] = [];
+  // Determine dietary info from types and name/description (auto-detect)
+  const autoDetectedDietary: DietaryTag[] = [];
   const searchText = `${place.name} ${place.types?.join(" ")}`.toLowerCase();
 
   if (place.types?.includes("vegetarian_restaurant") || searchText.includes("vegetarian")) {
-    dietaryInfo.push("vegetarian");
+    autoDetectedDietary.push("vegetarian");
   }
   if (place.types?.includes("vegan_restaurant") || searchText.includes("vegan")) {
-    dietaryInfo.push("vegan");
+    autoDetectedDietary.push("vegan");
   }
   if (searchText.includes("halal")) {
-    dietaryInfo.push("halal");
+    autoDetectedDietary.push("halal");
   }
   if (searchText.includes("kosher")) {
-    dietaryInfo.push("kosher");
+    autoDetectedDietary.push("kosher");
   }
   if (searchText.includes("gluten-free") || searchText.includes("gluten free")) {
-    dietaryInfo.push("gluten-free");
+    autoDetectedDietary.push("gluten-free");
   }
   if (searchText.includes("dairy-free") || searchText.includes("dairy free")) {
-    dietaryInfo.push("dairy-free");
+    autoDetectedDietary.push("dairy-free");
   }
   if (searchText.includes("nut-free") || searchText.includes("nut free")) {
-    dietaryInfo.push("nut-free");
+    autoDetectedDietary.push("nut-free");
   }
+
+  // Use override dietary info if provided, otherwise use auto-detected
+  const dietaryInfo = overrideDietaryInfo || autoDetectedDietary;
 
   const foodPlace = {
     id: place.place_id || Math.random().toString(36).substring(2, 11),

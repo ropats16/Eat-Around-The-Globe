@@ -9,12 +9,13 @@ export default function ActivityFeed() {
   const { foods, selectFood, centerGlobe } = useFoodGlobeStore();
 
   // Use useMemo instead of useEffect + useState
+  // Sort oldest first so newest appears at bottom
   const visibleFoods = useMemo(() => {
     const sorted = [...foods].sort(
       (a, b) =>
-        new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
+        new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime()
     );
-    return sorted.slice(0, 5);
+    return sorted.slice(-5); // Get last 5 items
   }, [foods]);
 
   const handleFoodClick = (food: (typeof foods)[0]) => {
@@ -83,8 +84,8 @@ export default function ActivityFeed() {
       transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
       className="absolute bottom-6 left-12 w-96 pointer-events-auto"
     >
-      <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl p-5 border border-gray-700/30">
-        <div className="space-y-3">
+      <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl p-4 border border-gray-700/30">
+        <div className="h-48 overflow-y-auto space-y-2 custom-scrollbar">
           <AnimatePresence mode="popLayout">
             {visibleFoods.map((food, index) => (
               <motion.button
@@ -97,9 +98,9 @@ export default function ActivityFeed() {
                 className="w-full text-left group hover:bg-white/5 p-2 rounded-lg transition-colors"
               >
                 <div className="flex items-start gap-2">
-                  <Eye className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                  <Eye className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap text-sm text-gray-200 leading-tight">
+                    <div className="flex items-center gap-1.5 flex-wrap text-xs text-gray-200 leading-tight">
                       <span className="font-medium">
                         {getAnonymousName(food.id)}
                       </span>
@@ -109,11 +110,11 @@ export default function ActivityFeed() {
                       </span>
                       <span className="text-gray-400">from</span>
                       <span className="font-medium">{food.city}</span>
-                      <span className="text-base">
+                      <span className="text-sm">
                         {getFlagEmoji(food.countryCode)}
                       </span>
                     </div>
-                    <div className="text-[11px] text-gray-500 mt-0.5">
+                    <div className="text-[10px] text-gray-500 mt-0.5">
                       {getTimeAgo(food.dateAdded)}
                     </div>
                   </div>
@@ -123,16 +124,34 @@ export default function ActivityFeed() {
           </AnimatePresence>
 
           {visibleFoods.length === 0 && (
-            <div className="text-center py-12 text-gray-500 text-sm">
+            <div className="text-center py-12 text-gray-500 text-xs">
               No activity yet
               <br />
-              <span className="text-xs text-gray-600">
+              <span className="text-[10px] text-gray-600">
                 Start by searching for a place!
               </span>
             </div>
           )}
         </div>
       </div>
+
+      {/* Custom scrollbar styles */}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+      `}</style>
     </motion.div>
   );
 }

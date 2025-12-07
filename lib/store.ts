@@ -117,7 +117,10 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
   getFilteredFoods: () => {
     const { foods, filters } = get();
 
-    return foods.filter((food) => {
+    console.log("🔍 FILTERING: Total foods:", foods.length);
+    console.log("🔍 FILTERING: Active filters:", filters);
+
+    const filtered = foods.filter((food) => {
       // Search query filter
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
@@ -128,7 +131,10 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
           food.description.toLowerCase().includes(query) ||
           food.tags.some(tag => tag.toLowerCase().includes(query));
 
-        if (!matchesSearch) return false;
+        if (!matchesSearch) {
+          console.log(`❌ ${food.name} filtered out by search query`);
+          return false;
+        }
       }
 
       // Continent filter
@@ -139,21 +145,36 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
 
       // Category filter
       if (filters.categories.length > 0) {
-        if (!filters.categories.includes(food.category)) return false;
+        console.log(`🔍 Checking ${food.name}: category="${food.category}", filters=${filters.categories}`);
+        if (!filters.categories.includes(food.category)) {
+          console.log(`❌ ${food.name} filtered out by category (has: ${food.category}, need: ${filters.categories})`);
+          return false;
+        }
       }
 
       // Dietary info filter
       if (filters.dietaryInfo.length > 0) {
+        console.log(`🔍 Checking ${food.name}: dietaryInfo=${JSON.stringify(food.dietaryInfo)}, filters=${JSON.stringify(filters.dietaryInfo)}`);
         const hasMatchingDiet = filters.dietaryInfo.some(diet =>
           food.dietaryInfo.includes(diet)
         );
-        if (!hasMatchingDiet) return false;
+        if (!hasMatchingDiet) {
+          console.log(`❌ ${food.name} filtered out by dietary (has: ${JSON.stringify(food.dietaryInfo)}, need: ${JSON.stringify(filters.dietaryInfo)})`);
+          return false;
+        }
       }
 
       // Price range filter
-      if (!filters.priceRange.includes(food.priceRange)) return false;
+      if (!filters.priceRange.includes(food.priceRange)) {
+        console.log(`❌ ${food.name} filtered out by price range`);
+        return false;
+      }
 
+      console.log(`✅ ${food.name} passed all filters`);
       return true;
     });
+
+    console.log("🔍 FILTERING: Filtered foods:", filtered.length);
+    return filtered;
   },
 }));

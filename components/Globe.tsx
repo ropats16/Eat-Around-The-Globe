@@ -27,6 +27,7 @@ export default function Globe() {
     getFilteredFoods,
     selectFood,
     foods,
+    filters,
     globeCenter,
     previewPlace,
     centerGlobe,
@@ -183,7 +184,7 @@ export default function Globe() {
         if (map.current) {
           map.current.flyTo({
             center: [food.coordinates[1], food.coordinates[0]],
-            zoom: 12,
+            zoom: 15,
             duration: 1500,
           });
         }
@@ -208,7 +209,7 @@ export default function Globe() {
 
       markersRef.current.push(marker);
     });
-  }, [getFilteredFoods, selectFood, centerGlobe, foods]);
+  }, [getFilteredFoods, selectFood, centerGlobe, foods, filters]);
 
   // Handle globe centering
   useEffect(() => {
