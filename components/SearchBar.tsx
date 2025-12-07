@@ -109,10 +109,9 @@ export default function SearchBar() {
       setIsAddingPlace(true);
 
       const foodPlace = convertGooglePlaceToFoodPlace(selectedPlace);
-      // Add recommender info to the food place
-      foodPlace.recommender = recommender;
 
-      addFood(foodPlace);
+      // Pass recommender as second parameter - store will handle merging duplicates
+      addFood(foodPlace, recommender);
       setSelectedPlace(null);
       setPreviewPlace(null); // Clear temporary pin
     } catch (error) {

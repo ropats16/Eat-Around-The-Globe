@@ -64,27 +64,28 @@ export default function Sidebar() {
 
   const filteredFoods = getFilteredFoods();
 
-  // Get unique recommenders
-  const recommenders = foods
-    .filter((f) => f.recommender?.name)
-    .reduce((acc, food) => {
-      const name = food.recommender!.name;
-      if (!acc.some((r) => r.name === name)) {
-        acc.push({
-          name,
-          profilePicture: food.recommender!.profilePicture,
-          count: foods.filter((f) => f.recommender?.name === name).length,
-        });
-      }
-      return acc;
-    }, [] as { name: string; profilePicture?: string; count: number }[])
+  // Get unique recommenders - flatten all recommenders from all foods
+  const allRecommenders = foods.flatMap((f) => f.recommenders || []);
+  const recommenderCounts = allRecommenders.reduce((acc, rec) => {
+    const existing = acc.find((r) => r.name === rec.name);
+    if (existing) {
+      existing.count++;
+    } else {
+      acc.push({
+        name: rec.name,
+        profilePicture: rec.profilePicture,
+        count: 1,
+      });
+    }
+    return acc;
+  }, [] as { name: string; profilePicture?: string; count: number }[]);
+
+  const recommenders = recommenderCounts
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
   // Get unique users count
-  const uniqueUsers = new Set(
-    foods.filter((f) => f.recommender?.name).map((f) => f.recommender!.name)
-  ).size;
+  const uniqueUsers = new Set(allRecommenders.map((r) => r.name)).size;
 
   // Get countries with counts
   const countries = foods

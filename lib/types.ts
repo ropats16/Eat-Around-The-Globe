@@ -4,6 +4,7 @@ export interface Recommender {
   caption?: string;
   category?: FoodCategory;
   dietaryInfo?: DietaryTag[];
+  dateRecommended: string; // ISO timestamp
 }
 
 export interface FoodPlace {
@@ -35,7 +36,7 @@ export interface FoodPlace {
   openingHours?: string[]; // Opening hours text
   isOpenNow?: boolean; // Currently open status
   totalReviews?: number; // Total number of reviews
-  recommender?: Recommender; // Person who recommended this place
+  recommenders: Recommender[]; // People who recommended this place (first is original)
 }
 
 export type FoodCategory =

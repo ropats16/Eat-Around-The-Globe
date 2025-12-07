@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { FoodPlace, Filters, Continent, FoodCategory, DietaryTag } from "./types";
+import { FoodPlace, Filters, Continent, FoodCategory, DietaryTag, Recommender } from "./types";
 
 interface FoodGlobeStore {
   // Data
@@ -21,7 +21,7 @@ interface FoodGlobeStore {
 
   // Actions
   setFoods: (foods: FoodPlace[]) => void;
-  addFood: (food: FoodPlace) => void;
+  addFood: (food: Omit<FoodPlace, 'recommenders'>, recommender: Recommender) => void;
   selectFood: (food: FoodPlace | null) => void;
   openDetailPanel: () => void;
   closeDetailPanel: () => void;
@@ -58,9 +58,28 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
   // Actions
   setFoods: (foods) => set({ foods }),
 
-  addFood: (food) => set((state) => ({
-    foods: [...state.foods, food]
-  })),
+  addFood: (food, recommender) => set((state) => {
+    // Check for duplicate by placeId
+    const existingIndex = state.foods.findIndex(f => f.placeId && f.placeId === food.placeId);
+
+    if (existingIndex !== -1) {
+      // Place exists - add recommender to existing place
+      const updatedFoods = [...state.foods];
+      updatedFoods[existingIndex] = {
+        ...updatedFoods[existingIndex],
+        recommenders: [...updatedFoods[existingIndex].recommenders, recommender]
+      };
+      return { foods: updatedFoods };
+    }
+
+    // New place - create with recommenders array
+    const newPlace: FoodPlace = {
+      ...food,
+      recommenders: [recommender]
+    };
+
+    return { foods: [...state.foods, newPlace] };
+  }),
 
   selectFood: (food) => set({
     selectedFood: food,

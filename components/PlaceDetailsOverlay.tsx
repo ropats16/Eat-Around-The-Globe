@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useFoodGlobeStore } from "@/lib/store";
 import {
   X,
   MapPin,
@@ -61,6 +62,14 @@ export default function PlaceDetailsOverlay({
   onSaveToMap,
   isSaving = false,
 }: PlaceDetailsOverlayProps) {
+  const foods = useFoodGlobeStore((state) => state.foods);
+
+  // Memoized duplicate detection - check if this place already exists
+  const existingPlace = useMemo(() => {
+    if (!place?.place_id) return null;
+    return foods.find((f) => f.placeId === place.place_id);
+  }, [foods, place]);
+
   // Detect category from Google types
   const detectedCategory = useMemo((): FoodCategory | "" => {
     if (!place?.types) return "";
@@ -106,14 +115,21 @@ export default function PlaceDetailsOverlay({
   const [selectedDietary, setSelectedDietary] =
     useState<DietaryTag[]>(detectedDietary);
 
+  // Check if current user (by name) has already added this place
+  const hasUserAlreadyAdded = useMemo(() => {
+    if (!existingPlace || !recommenderName.trim()) return false;
+    return existingPlace.recommenders.some(
+      (r) => r.name.toLowerCase() === recommenderName.trim().toLowerCase()
+    );
+  }, [existingPlace, recommenderName]);
+
   if (!place) return null;
 
   const photos = place.photos?.slice(0, 3) || [];
   const priceLevel = place.price_level ? "$".repeat(place.price_level) : null;
 
   const handleSubmit = () => {
-    if (!recommenderName.trim()) {
-      alert("Please enter your name");
+    if (!recommenderName.trim() || hasUserAlreadyAdded) {
       return;
     }
 
@@ -123,6 +139,7 @@ export default function PlaceDetailsOverlay({
       caption: recommenderCaption.trim() || undefined,
       category: selectedCategory || undefined,
       dietaryInfo: selectedDietary.length > 0 ? selectedDietary : undefined,
+      dateRecommended: new Date().toISOString(),
     };
 
     onSaveToMap(recommender);
@@ -293,6 +310,23 @@ export default function PlaceDetailsOverlay({
                         className="text-sm"
                       />
                     </InputGroup>
+                    {hasUserAlreadyAdded && (
+                      <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                        <span className="font-medium">
+                          ⚠️ You have already added this place
+                        </span>
+                      </p>
+                    )}
+                    {existingPlace &&
+                      recommenderName.trim() &&
+                      !hasUserAlreadyAdded && (
+                        <p className="mt-2 text-xs text-purple-600 flex items-center gap-1">
+                          <span className="font-medium">
+                            ✨ Adding your recommendation to{" "}
+                            {existingPlace.recommenders[0].name}&apos;s place
+                          </span>
+                        </p>
+                      )}
                   </div>
 
                   <div>
@@ -327,7 +361,7 @@ export default function PlaceDetailsOverlay({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                       <UtensilsCrossed className="w-4 h-4" />
                       Category (optional)
                     </label>
@@ -348,7 +382,7 @@ export default function PlaceDetailsOverlay({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                       <Leaf className="w-4 h-4" />
                       Dietary Tags (optional)
                     </label>
@@ -382,14 +416,18 @@ export default function PlaceDetailsOverlay({
                   </Button>
                   <Button
                     onClick={handleSubmit}
-                    disabled={isSaving || !recommenderName.trim()}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    disabled={
+                      isSaving || !recommenderName.trim() || hasUserAlreadyAdded
+                    }
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {isSaving ? (
                       <span className="flex items-center justify-center gap-2">
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Saving...
                       </span>
+                    ) : hasUserAlreadyAdded ? (
+                      <span className="text-sm">Already Added</span>
                     ) : (
                       "Save to Map"
                     )}

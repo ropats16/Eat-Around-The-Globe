@@ -199,40 +199,50 @@ export default function DetailPanel() {
                 </div>
 
                 {/* Recommender Info */}
-                {selectedFood.recommender && (
+                {selectedFood.recommenders && selectedFood.recommenders.length > 0 && (
                   <div className="p-4 bg-linear-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
                     <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                       <Award className="w-4 h-4 text-purple-600" />
-                      Recommended by
+                      Recommended by {selectedFood.recommenders.length} {selectedFood.recommenders.length === 1 ? 'person' : 'people'}
                     </h3>
-                    <div className="flex items-center gap-3">
-                      {selectedFood.recommender.profilePicture ? (
-                        <Image
-                          src={selectedFood.recommender.profilePicture}
-                          alt={selectedFood.recommender.name}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-300"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center ring-2 ring-purple-300">
-                          <span className="text-white font-bold text-lg">
-                            {selectedFood.recommender.name
-                              .charAt(0)
-                              .toUpperCase()}
-                          </span>
+                    <div className="space-y-3">
+                      {/* First recommender (original) - shown prominently */}
+                      {selectedFood.recommenders.map((recommender, idx) => (
+                        <div key={idx} className={`flex items-start gap-3 ${idx > 0 ? 'pt-3 border-t border-purple-200' : ''}`}>
+                          {recommender.profilePicture ? (
+                            <Image
+                              src={recommender.profilePicture}
+                              alt={recommender.name}
+                              width={idx === 0 ? 48 : 40}
+                              height={idx === 0 ? 48 : 40}
+                              className={`${idx === 0 ? 'w-12 h-12' : 'w-10 h-10'} rounded-full object-cover ring-2 ${idx === 0 ? 'ring-purple-400' : 'ring-purple-200'}`}
+                            />
+                          ) : (
+                            <div className={`${idx === 0 ? 'w-12 h-12' : 'w-10 h-10'} rounded-full bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center ring-2 ${idx === 0 ? 'ring-purple-400' : 'ring-purple-200'}`}>
+                              <span className={`text-white font-bold ${idx === 0 ? 'text-lg' : 'text-base'}`}>
+                                {recommender.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={`${idx === 0 ? 'font-bold' : 'font-semibold'} text-gray-900`}>
+                                {recommender.name}
+                              </p>
+                              {idx === 0 && (
+                                <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-medium">
+                                  Original
+                                </span>
+                              )}
+                            </div>
+                            {recommender.caption && (
+                              <p className="text-sm text-gray-600 mt-1 italic">
+                                &ldquo;{recommender.caption}&rdquo;
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900">
-                          {selectedFood.recommender.name}
-                        </p>
-                        {selectedFood.recommender.caption && (
-                          <p className="text-sm text-gray-600 mt-1 italic">
-                            &ldquo;{selectedFood.recommender.caption}&rdquo;
-                          </p>
-                        )}
-                      </div>
+                      ))}
                     </div>
                   </div>
                 )}

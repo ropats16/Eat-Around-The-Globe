@@ -189,7 +189,7 @@ export const getPlaceDetails = async (
 export const convertGooglePlaceToFoodPlace = (
   place: google.maps.places.PlaceResult,
   category: FoodCategory = "traditional"
-): FoodPlace => {
+): Omit<FoodPlace, 'recommenders'> => {
   const lat = place.geometry?.location?.lat() || 0;
   const lng = place.geometry?.location?.lng() || 0;
 
@@ -241,13 +241,13 @@ export const convertGooglePlaceToFoodPlace = (
     dietaryInfo.push("nut-free");
   }
 
-  const foodPlace: FoodPlace = {
+  const foodPlace = {
     id: place.place_id || Math.random().toString(36).substring(2, 11),
     name: place.name || "Unnamed Place",
     country,
     countryCode,
     city,
-    coordinates: [lat, lng],
+    coordinates: [lat, lng] as [number, number],
     category,
     description: place.reviews?.[0]?.text || "No description available",
     shortDescription: place.name || "Food place",
