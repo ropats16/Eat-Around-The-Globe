@@ -229,7 +229,7 @@ export default function DetailPanel() {
                         </p>
                         {selectedFood.recommender.caption && (
                           <p className="text-sm text-gray-600 mt-1 italic">
-                            "{selectedFood.recommender.caption}"
+                            &ldquo;{selectedFood.recommender.caption}&rdquo;
                           </p>
                         )}
                       </div>

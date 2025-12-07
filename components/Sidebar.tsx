@@ -38,7 +38,11 @@ const CATEGORIES: { value: FoodCategory; label: string; icon: LucideIcon }[] = [
   { value: "bakery", label: "Bakery", icon: Croissant },
 ];
 
-const DIETARY_OPTIONS: { value: DietaryTag; label: string; icon: LucideIcon }[] = [
+const DIETARY_OPTIONS: {
+  value: DietaryTag;
+  label: string;
+  icon: LucideIcon;
+}[] = [
   { value: "vegan", label: "Vegan", icon: Leaf },
   { value: "vegetarian", label: "Vegetarian", icon: Salad },
   { value: "gluten-free", label: "Gluten-Free", icon: Wheat },
@@ -92,7 +96,7 @@ export default function Sidebar() {
         acc.push({
           country: food.country,
           countryCode: food.countryCode,
-          count: 1
+          count: 1,
         });
       }
       return acc;
@@ -104,8 +108,8 @@ export default function Sidebar() {
   const getFlagEmoji = (countryCode: string) => {
     const codePoints = countryCode
       .toUpperCase()
-      .split('')
-      .map(char => 127397 + char.charCodeAt(0));
+      .split("")
+      .map((char) => 127397 + char.charCodeAt(0));
     return String.fromCodePoint(...codePoints);
   };
 
@@ -167,10 +171,12 @@ export default function Sidebar() {
               />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-gray-900">Food Globe</h1>
-              <span className="text-[10px] text-gray-500 uppercase tracking-wide">
+              <h1 className="text-xl font-bold text-gray-900">
+                Eat Around The Globe
+              </h1>
+              {/* <span className="text-[10px] text-gray-500 uppercase tracking-wide">
                 Real-Time
-              </span>
+              </span> */}
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -208,7 +214,9 @@ export default function Sidebar() {
             </span>
           </div>
           <span className="text-gray-600">places added by</span>
-          <span className="text-base font-bold text-gray-900">{uniqueUsers}</span>
+          <span className="text-base font-bold text-gray-900">
+            {uniqueUsers}
+          </span>
           <span className="text-gray-600">users</span>
         </div>
 
