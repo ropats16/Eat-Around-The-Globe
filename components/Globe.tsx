@@ -22,6 +22,7 @@ export default function Globe() {
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const previewMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const rotationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     getFilteredFoods,
@@ -31,7 +32,16 @@ export default function Globe() {
     globeCenter,
     previewPlace,
     centerGlobe,
+    autoRotate,
   } = useFoodGlobeStore();
+
+  // Use ref to avoid stale closure in spinGlobe function
+  const autoRotateRef = useRef(autoRotate);
+
+  // Update ref when autoRotate changes (must be in useEffect to avoid updating during render)
+  useEffect(() => {
+    autoRotateRef.current = autoRotate;
+  }, [autoRotate]);
 
   // Initialize map
   useEffect(() => {
@@ -75,10 +85,11 @@ export default function Globe() {
     const slowSpinZoom = 3;
 
     let userInteracting = false;
-    const spinEnabled = true;
 
     function spinGlobe() {
-      if (!map.current || !spinEnabled || userInteracting) return;
+      if (!map.current || !autoRotateRef.current || userInteracting) {
+        return;
+      }
       const zoom = map.current.getZoom();
       if (zoom < maxSpinZoom) {
         let distancePerSecond = 360 / secondsPerRevolution;
@@ -99,14 +110,13 @@ export default function Globe() {
       userInteracting = true;
     };
     const handleMoveEnd = () => {
+      userInteracting = false;
       spinGlobe();
     };
 
     map.current.on("mousedown", handleMouseDown);
     map.current.on("dragstart", handleDragStart);
     map.current.on("moveend", handleMoveEnd);
-
-    spinGlobe();
 
     return () => {
       if (map.current) {
@@ -118,6 +128,55 @@ export default function Globe() {
       }
     };
   }, []);
+
+  // Handle auto-rotation based on store state
+  useEffect(() => {
+    // Clear any existing rotation interval
+    if (rotationIntervalRef.current) {
+      clearInterval(rotationIntervalRef.current);
+      rotationIntervalRef.current = null;
+    }
+
+    // Start rotation if autoRotate is true
+    if (autoRotate && map.current) {
+      // Reset zoom to initial level when rotation restarts
+      const currentZoom = map.current.getZoom();
+      if (currentZoom > 5) {
+        map.current.easeTo({ zoom: 2.5, duration: 1500 });
+      }
+
+      const secondsPerRevolution = 120;
+      const maxSpinZoom = 5;
+      const slowSpinZoom = 3;
+
+      const rotate = () => {
+        if (!map.current || !autoRotateRef.current) return;
+
+        const zoom = map.current.getZoom();
+        if (zoom < maxSpinZoom) {
+          let distancePerSecond = 360 / secondsPerRevolution;
+          if (zoom > slowSpinZoom) {
+            const zoomDif = (maxSpinZoom - zoom) / (maxSpinZoom - slowSpinZoom);
+            distancePerSecond *= zoomDif;
+          }
+          const center = map.current.getCenter();
+          center.lng -= distancePerSecond;
+          map.current.easeTo({ center, duration: 1000, easing: (n) => n });
+        }
+      };
+
+      // Call rotate immediately to eliminate lag, then start interval
+      rotate();
+      rotationIntervalRef.current = setInterval(rotate, 1000);
+    }
+
+    return () => {
+      if (rotationIntervalRef.current) {
+        clearInterval(rotationIntervalRef.current);
+        rotationIntervalRef.current = null;
+      }
+    };
+  }, [autoRotate]);
 
   // Update markers when foods change
   useEffect(() => {
