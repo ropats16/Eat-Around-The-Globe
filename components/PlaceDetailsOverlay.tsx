@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFoodGlobeStore } from "@/lib/store";
 import {
@@ -13,16 +13,10 @@ import {
   Plus,
   User,
   MessageSquare,
-  Image as ImageIcon,
   UtensilsCrossed,
   Leaf,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { Recommender, FoodCategory, DietaryTag } from "@/lib/types";
@@ -67,6 +61,8 @@ export default function PlaceDetailsOverlay({
   const walletAddress = useFoodGlobeStore((state) => state.walletAddress);
   const walletType = useFoodGlobeStore((state) => state.walletType);
   const walletProvider = useFoodGlobeStore((state) => state.walletProvider);
+  const userProfile = useFoodGlobeStore((state) => state.userProfile);
+  const openProfileModal = useFoodGlobeStore((state) => state.openProfileModal);
 
   // Memoized duplicate detection - check if this place already exists
   const existingPlace = useMemo(() => {
@@ -110,8 +106,6 @@ export default function PlaceDetailsOverlay({
   }, [place]);
 
   const [showForm, setShowForm] = useState(false);
-  const [recommenderName, setRecommenderName] = useState("");
-  const [recommenderPfp, setRecommenderPfp] = useState("");
   const [recommenderCaption, setRecommenderCaption] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<FoodCategory | "">(
     detectedCategory
@@ -121,11 +115,21 @@ export default function PlaceDetailsOverlay({
 
   // Check if current user (by name) has already added this place
   const hasUserAlreadyAdded = useMemo(() => {
-    if (!existingPlace || !recommenderName.trim()) return false;
+    if (!existingPlace || !userProfile?.username) return false;
     return existingPlace.recommenders.some(
-      (r) => r.name.toLowerCase() === recommenderName.trim().toLowerCase()
+      (r) => r.name.toLowerCase() === userProfile.username.toLowerCase()
     );
-  }, [existingPlace, recommenderName]);
+  }, [existingPlace, userProfile]);
+
+  // Auto-show form when profile is set (after profile modal closes)
+  // MUST be before early return to follow Rules of Hooks
+  useEffect(() => {
+    if (userProfile && !showForm && walletAddress) {
+      setShowForm(true);
+    }
+    // Note: showForm intentionally excluded from deps to prevent cascading renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile, walletAddress]);
 
   if (!place) return null;
 
@@ -133,13 +137,13 @@ export default function PlaceDetailsOverlay({
   const priceLevel = place.price_level ? "$".repeat(place.price_level) : null;
 
   const handleSubmit = async () => {
-    if (!recommenderName.trim() || hasUserAlreadyAdded) {
+    if (!userProfile || hasUserAlreadyAdded) {
       return;
     }
 
     const recommender: Recommender = {
-      name: recommenderName.trim(),
-      profilePicture: recommenderPfp.trim() || undefined,
+      name: userProfile.username,
+      profilePicture: userProfile.pfp || undefined,
       caption: recommenderCaption.trim() || undefined,
       category: selectedCategory || undefined,
       dietaryInfo: selectedDietary.length > 0 ? selectedDietary : undefined,
@@ -292,6 +296,7 @@ export default function PlaceDetailsOverlay({
                   <div className="text-sm text-gray-700">
                     <details className="cursor-pointer">
                       <summary className="hover:text-gray-900 font-medium">
+                        {/* Using deprecated open_now for backwards compatibility */}
                         {place.opening_hours.open_now ? (
                           <span className="text-green-600">Open now</span>
                         ) : (
@@ -315,7 +320,16 @@ export default function PlaceDetailsOverlay({
             {/* Action Button / Form */}
             {!showForm ? (
               <Button
-                onClick={() => setShowForm(true)}
+                onClick={() => {
+                  // Check if user has profile first
+                  if (!userProfile && walletAddress) {
+                    // No profile - open profile modal
+                    openProfileModal();
+                  } else {
+                    // Has profile or no wallet - show form
+                    setShowForm(true);
+                  }
+                }}
                 disabled={isSaving}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-6 font-medium shadow-sm hover:shadow-md transition-all"
               >
@@ -331,57 +345,48 @@ export default function PlaceDetailsOverlay({
                   Your Recommendation
                 </h3>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Your Name *
-                    </label>
-                    <InputGroup className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                      <InputGroupAddon>
-                        <User className="w-4 h-4" />
-                      </InputGroupAddon>
-                      <InputGroupInput
-                        placeholder="Enter your name"
-                        value={recommenderName}
-                        onChange={(e) => setRecommenderName(e.target.value)}
-                        className="text-sm"
-                      />
-                    </InputGroup>
-                    {hasUserAlreadyAdded && (
-                      <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
-                        <span className="font-medium">
-                          ⚠️ You have already added this place
-                        </span>
-                      </p>
+                {/* User info display */}
+                {userProfile && (
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                    {userProfile.pfp ? (
+                      <div className="relative w-10 h-10">
+                        <Image
+                          src={userProfile.pfp}
+                          alt={userProfile.username}
+                          fill
+                          className="rounded-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
                     )}
-                    {existingPlace &&
-                      recommenderName.trim() &&
-                      !hasUserAlreadyAdded && (
-                        <p className="mt-2 text-xs text-purple-600 flex items-center gap-1">
-                          <span className="font-medium">
-                            ✨ Adding your recommendation to{" "}
-                            {existingPlace.recommenders[0].name}&apos;s place
-                          </span>
-                        </p>
-                      )}
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {userProfile.username}
+                      </p>
+                    </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Profile Picture URL (optional)
-                    </label>
-                    <InputGroup className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                      <InputGroupAddon>
-                        <ImageIcon className="w-4 h-4" />
-                      </InputGroupAddon>
-                      <InputGroupInput
-                        placeholder="https://example.com/your-photo.jpg"
-                        value={recommenderPfp}
-                        onChange={(e) => setRecommenderPfp(e.target.value)}
-                        className="text-sm"
-                      />
-                    </InputGroup>
-                  </div>
+                {hasUserAlreadyAdded && (
+                  <p className="text-xs text-red-600 flex items-center gap-1 bg-red-50 p-2 rounded-lg">
+                    <span className="font-medium">
+                      ⚠️ You have already added this place
+                    </span>
+                  </p>
+                )}
+                {existingPlace && userProfile && !hasUserAlreadyAdded && (
+                  <p className="text-xs text-purple-600 flex items-center gap-1 bg-purple-50 p-2 rounded-lg">
+                    <span className="font-medium">
+                      ✨ Adding your recommendation to{" "}
+                      {existingPlace.recommenders[0].name}&apos;s place
+                    </span>
+                  </p>
+                )}
+
+                <div className="space-y-4">
 
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -453,9 +458,7 @@ export default function PlaceDetailsOverlay({
                   </Button>
                   <Button
                     onClick={handleSubmit}
-                    disabled={
-                      isSaving || !recommenderName.trim() || hasUserAlreadyAdded
-                    }
+                    disabled={isSaving || !userProfile || hasUserAlreadyAdded}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {isSaving ? (
