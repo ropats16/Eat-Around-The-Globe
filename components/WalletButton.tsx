@@ -67,7 +67,7 @@ export default function WalletButton() {
         whileTap={{ scale: 0.99 }}
         onClick={openWalletModal}
         disabled={isConnecting}
-        className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-200 border border-gray-100 disabled:opacity-50 group"
+        className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-200 border border-gray-100 disabled:opacity-50 group z-50"
       >
         {/* Icon container - matches modal style */}
         <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-300 to-blue-400 flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:scale-105 transition-transform">
@@ -143,7 +143,7 @@ export default function WalletButton() {
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         onClick={() => setShowDropdown(!showDropdown)}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-200 border border-gray-100 ${
+        className={`w-full z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-200 border border-gray-100 ${
           walletInfo?.lightBg || "bg-white"
         }`}
       >
@@ -188,7 +188,7 @@ export default function WalletButton() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40"
+              className="fixed inset-0 z-100"
               onClick={() => setShowDropdown(false)}
             />
 
