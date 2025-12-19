@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { FoodPlace, Filters, Continent, FoodCategory, DietaryTag, Recommender } from "./types";
+import { FoodPlace, Filters, Recommender } from "./types";
+import { WalletType } from "./wallet-types";
 
 interface FoodGlobeStore {
   // Data
@@ -7,6 +8,18 @@ interface FoodGlobeStore {
   selectedFood: FoodPlace | null;
   isDetailPanelOpen: boolean;
   previewPlace: { lat: number; lng: number; name: string } | null; // Temporary pin for search results
+
+  // === WALLET STATE ===
+  walletType: WalletType;
+  walletAddress: string | null;
+  isConnecting: boolean;
+  isWalletModalOpen: boolean;
+
+  // === USER INTERACTIONS (cached from Arweave) ===
+  userLikes: Record<string, boolean>; // placeId → liked by current user
+  likeCounts: Record<string, number>; // placeId → total likes from all users
+  pendingUploads: Set<string>; // placeIds currently being uploaded
+  isLoadingInteractions: boolean;
 
   // Filters
   filters: Filters;
@@ -21,7 +34,10 @@ interface FoodGlobeStore {
 
   // Actions
   setFoods: (foods: FoodPlace[]) => void;
-  addFood: (food: Omit<FoodPlace, 'recommenders'>, recommender: Recommender) => void;
+  addFood: (
+    food: Omit<FoodPlace, "recommenders">,
+    recommender: Recommender
+  ) => void;
   selectFood: (food: FoodPlace | null) => void;
   openDetailPanel: () => void;
   closeDetailPanel: () => void;
@@ -32,7 +48,28 @@ interface FoodGlobeStore {
   toggleAutoRotate: () => void;
   centerGlobe: (lat: number, lng: number) => void;
   getFilteredFoods: () => FoodPlace[];
-  setPreviewPlace: (place: { lat: number; lng: number; name: string } | null) => void;
+  setPreviewPlace: (
+    place: { lat: number; lng: number; name: string } | null
+  ) => void;
+
+  // === WALLET ACTIONS ===
+  setWallet: (type: WalletType, address: string) => void;
+  disconnectWallet: () => void;
+  openWalletModal: () => void;
+  closeWalletModal: () => void;
+  setIsConnecting: (connecting: boolean) => void;
+
+  // === INTERACTION ACTIONS ===
+  setUserLikes: (likes: Record<string, boolean>) => void;
+  setLikeCounts: (counts: Record<string, number>) => void;
+  toggleLike: (placeId: string) => void; // Optimistic update
+  addPendingUpload: (placeId: string) => void;
+  removePendingUpload: (placeId: string) => void;
+  setIsLoadingInteractions: (loading: boolean) => void;
+
+  // === HELPER ===
+  isPlaceLiked: (placeId: string) => boolean;
+  getLikeCount: (placeId: string) => number;
 }
 
 const initialFilters: Filters = {
@@ -55,47 +92,68 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
   autoRotate: true,
   globeCenter: null,
 
+  // Wallet state
+  walletType: null,
+  walletAddress: null,
+  isConnecting: false,
+  isWalletModalOpen: false,
+
+  // Interaction state
+  userLikes: {},
+  likeCounts: {},
+  pendingUploads: new Set<string>(),
+  isLoadingInteractions: false,
+
   // Actions
   setFoods: (foods) => set({ foods }),
 
-  addFood: (food, recommender) => set((state) => {
-    // Check for duplicate by placeId
-    const existingIndex = state.foods.findIndex(f => f.placeId && f.placeId === food.placeId);
+  addFood: (food, recommender) =>
+    set((state) => {
+      // Check for duplicate by placeId
+      const existingIndex = state.foods.findIndex(
+        (f) => f.placeId && f.placeId === food.placeId
+      );
 
-    if (existingIndex !== -1) {
-      // Place exists - add recommender to existing place
-      const updatedFoods = [...state.foods];
-      updatedFoods[existingIndex] = {
-        ...updatedFoods[existingIndex],
-        recommenders: [...updatedFoods[existingIndex].recommenders, recommender]
+      if (existingIndex !== -1) {
+        // Place exists - add recommender to existing place
+        const updatedFoods = [...state.foods];
+        updatedFoods[existingIndex] = {
+          ...updatedFoods[existingIndex],
+          recommenders: [
+            ...updatedFoods[existingIndex].recommenders,
+            recommender,
+          ],
+        };
+        return { foods: updatedFoods };
+      }
+
+      // New place - create with recommenders array
+      const newPlace: FoodPlace = {
+        ...food,
+        recommenders: [recommender],
       };
-      return { foods: updatedFoods };
-    }
 
-    // New place - create with recommenders array
-    const newPlace: FoodPlace = {
-      ...food,
-      recommenders: [recommender]
-    };
+      return { foods: [...state.foods, newPlace] };
+    }),
 
-    return { foods: [...state.foods, newPlace] };
-  }),
-
-  selectFood: (food) => set({
-    selectedFood: food,
-    isDetailPanelOpen: food !== null,
-  }),
+  selectFood: (food) =>
+    set({
+      selectedFood: food,
+      isDetailPanelOpen: food !== null,
+    }),
 
   openDetailPanel: () => set({ isDetailPanelOpen: true }),
 
-  closeDetailPanel: () => set({
-    isDetailPanelOpen: false,
-    selectedFood: null,
-  }),
+  closeDetailPanel: () =>
+    set({
+      isDetailPanelOpen: false,
+      selectedFood: null,
+    }),
 
-  setFilters: (newFilters) => set((state) => ({
-    filters: { ...state.filters, ...newFilters },
-  })),
+  setFilters: (newFilters) =>
+    set((state) => ({
+      filters: { ...state.filters, ...newFilters },
+    })),
 
   resetFilters: () => set({ filters: initialFilters }),
 
@@ -103,14 +161,16 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
 
   setIsAddingPlace: (adding) => set({ isAddingPlace: adding }),
 
-  toggleAutoRotate: () => set((state) => ({
-    autoRotate: !state.autoRotate
-  })),
+  toggleAutoRotate: () =>
+    set((state) => ({
+      autoRotate: !state.autoRotate,
+    })),
 
-  centerGlobe: (lat, lng) => set({
-    globeCenter: { lat, lng },
-    autoRotate: false,
-  }),
+  centerGlobe: (lat, lng) =>
+    set({
+      globeCenter: { lat, lng },
+      autoRotate: false,
+    }),
 
   setPreviewPlace: (place) => set({ previewPlace: place }),
 
@@ -129,7 +189,7 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
           food.country.toLowerCase().includes(query) ||
           food.city.toLowerCase().includes(query) ||
           food.description.toLowerCase().includes(query) ||
-          food.tags.some(tag => tag.toLowerCase().includes(query));
+          food.tags.some((tag) => tag.toLowerCase().includes(query));
 
         if (!matchesSearch) {
           console.log(`❌ ${food.name} filtered out by search query`);
@@ -145,21 +205,33 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
 
       // Category filter
       if (filters.categories.length > 0) {
-        console.log(`🔍 Checking ${food.name}: category="${food.category}", filters=${filters.categories}`);
+        console.log(
+          `🔍 Checking ${food.name}: category="${food.category}", filters=${filters.categories}`
+        );
         if (!filters.categories.includes(food.category)) {
-          console.log(`❌ ${food.name} filtered out by category (has: ${food.category}, need: ${filters.categories})`);
+          console.log(
+            `❌ ${food.name} filtered out by category (has: ${food.category}, need: ${filters.categories})`
+          );
           return false;
         }
       }
 
       // Dietary info filter
       if (filters.dietaryInfo.length > 0) {
-        console.log(`🔍 Checking ${food.name}: dietaryInfo=${JSON.stringify(food.dietaryInfo)}, filters=${JSON.stringify(filters.dietaryInfo)}`);
-        const hasMatchingDiet = filters.dietaryInfo.some(diet =>
+        console.log(
+          `🔍 Checking ${food.name}: dietaryInfo=${JSON.stringify(
+            food.dietaryInfo
+          )}, filters=${JSON.stringify(filters.dietaryInfo)}`
+        );
+        const hasMatchingDiet = filters.dietaryInfo.some((diet) =>
           food.dietaryInfo.includes(diet)
         );
         if (!hasMatchingDiet) {
-          console.log(`❌ ${food.name} filtered out by dietary (has: ${JSON.stringify(food.dietaryInfo)}, need: ${JSON.stringify(filters.dietaryInfo)})`);
+          console.log(
+            `❌ ${food.name} filtered out by dietary (has: ${JSON.stringify(
+              food.dietaryInfo
+            )}, need: ${JSON.stringify(filters.dietaryInfo)})`
+          );
           return false;
         }
       }
@@ -176,5 +248,85 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
 
     console.log("🔍 FILTERING: Filtered foods:", filtered.length);
     return filtered;
+  },
+
+  // === WALLET ACTIONS ===
+  setWallet: (type, address) =>
+    set({
+      walletType: type,
+      walletAddress: address,
+      isConnecting: false,
+      isWalletModalOpen: false,
+    }),
+
+  disconnectWallet: () =>
+    set({
+      walletType: null,
+      walletAddress: null,
+      userLikes: {}, // Clear user-specific data
+      pendingUploads: new Set<string>(),
+    }),
+
+  openWalletModal: () => set({ isWalletModalOpen: true }),
+
+  closeWalletModal: () => set({ isWalletModalOpen: false }),
+
+  setIsConnecting: (connecting) => set({ isConnecting: connecting }),
+
+  // === INTERACTION ACTIONS ===
+  setUserLikes: (likes) => set({ userLikes: likes }),
+
+  setLikeCounts: (counts) => set({ likeCounts: counts }),
+
+  toggleLike: (placeId) =>
+    set((state) => {
+      const currentlyLiked = state.userLikes[placeId] ?? false;
+      const newLikedState = !currentlyLiked;
+
+      // Optimistic update for user's like state
+      const newUserLikes = {
+        ...state.userLikes,
+        [placeId]: newLikedState,
+      };
+
+      // Optimistic update for like count
+      const currentCount = state.likeCounts[placeId] ?? 0;
+      const newLikeCounts = {
+        ...state.likeCounts,
+        [placeId]: newLikedState
+          ? currentCount + 1
+          : Math.max(0, currentCount - 1),
+      };
+
+      return {
+        userLikes: newUserLikes,
+        likeCounts: newLikeCounts,
+      };
+    }),
+
+  addPendingUpload: (placeId) =>
+    set((state) => ({
+      pendingUploads: new Set([...state.pendingUploads, placeId]),
+    })),
+
+  removePendingUpload: (placeId) =>
+    set((state) => {
+      const newPending = new Set(state.pendingUploads);
+      newPending.delete(placeId);
+      return { pendingUploads: newPending };
+    }),
+
+  setIsLoadingInteractions: (loading) =>
+    set({ isLoadingInteractions: loading }),
+
+  // === HELPERS ===
+  isPlaceLiked: (placeId) => {
+    const { userLikes } = get();
+    return userLikes[placeId] ?? false;
+  },
+
+  getLikeCount: (placeId) => {
+    const { likeCounts } = get();
+    return likeCounts[placeId] ?? 0;
   },
 }));
