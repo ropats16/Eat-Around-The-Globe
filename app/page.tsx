@@ -8,7 +8,13 @@ import ActivityFeed from "@/components/ActivityFeed";
 import SearchBar from "@/components/SearchBar";
 import DetailPanel from "@/components/DetailPanel";
 import LoadingScreen from "@/components/LoadingScreen";
-import { initGoogleMaps } from "@/lib/google-places";
+import {
+  initGoogleMaps,
+  getPlaceDetails,
+  convertGooglePlaceToFoodPlace,
+} from "@/lib/google-places";
+import { getAllRecommendations } from "@/lib/arweave-query";
+import { useFoodGlobeStore } from "@/lib/store";
 import WalletButton from "@/components/WalletButton";
 import WalletModal from "@/components/WalletModal";
 
@@ -16,6 +22,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [mapsInitialized, setMapsInitialized] = useState(false);
   const [mapboxAvailable, setMapboxAvailable] = useState(false);
+  const addFood = useFoodGlobeStore((state) => state.addFood);
 
   useEffect(() => {
     const init = async () => {
@@ -29,6 +36,9 @@ export default function Home() {
         if (apiKey) {
           await initGoogleMaps(apiKey);
           setMapsInitialized(true);
+
+          // Fetch recommendations from Arweave and hydrate with Google Places data
+          await loadRecommendationsFromArweave();
         }
       } catch (error) {
         console.error("Failed to initialize:", error);
@@ -38,8 +48,104 @@ export default function Home() {
       }
     };
 
+    const loadRecommendationsFromArweave = async () => {
+      try {
+        console.log("🌐 Loading recommendations from Arweave...");
+        const recommendations = await getAllRecommendations(50);
+
+        if (recommendations.length === 0) {
+          console.log("📭 No recommendations found on Arweave");
+          return;
+        }
+
+        // Group recommendations by placeId to avoid duplicate API calls
+        const byPlaceId = new Map<string, typeof recommendations>();
+        for (const rec of recommendations) {
+          if (!rec.placeId) continue;
+          const existing = byPlaceId.get(rec.placeId) || [];
+          existing.push(rec);
+          byPlaceId.set(rec.placeId, existing);
+        }
+
+        console.log(
+          `🗺️ Fetching details for ${byPlaceId.size} unique places...`
+        );
+
+        // Fetch Google Places details for each unique placeId
+        for (const [placeId, recs] of byPlaceId) {
+          try {
+            const placeDetails = await getPlaceDetails(placeId);
+
+            // Use the first recommendation's data for category/dietary
+            const firstRec = recs[0];
+            const foodPlace = convertGooglePlaceToFoodPlace(
+              placeDetails,
+              (firstRec.data.category as
+                | "traditional"
+                | "street-food"
+                | "fine-dining"
+                | "fast-food"
+                | "dessert"
+                | "bakery"
+                | "seafood"
+                | "vegetarian"
+                | "drink") || "traditional",
+              firstRec.data.dietaryTags as (
+                | "vegan"
+                | "vegetarian"
+                | "gluten-free"
+                | "halal"
+                | "kosher"
+                | "dairy-free"
+                | "nut-free"
+              )[]
+            );
+
+            // Add each recommender
+            for (const rec of recs) {
+              addFood(foodPlace, {
+                name: rec.author.slice(0, 8) + "...", // Shortened wallet address
+                caption: rec.data.caption || undefined,
+                category: rec.data.category as
+                  | "traditional"
+                  | "street-food"
+                  | "fine-dining"
+                  | "fast-food"
+                  | "dessert"
+                  | "bakery"
+                  | "seafood"
+                  | "vegetarian"
+                  | "drink"
+                  | undefined,
+                dietaryInfo: rec.data.dietaryTags as
+                  | (
+                      | "vegan"
+                      | "vegetarian"
+                      | "gluten-free"
+                      | "halal"
+                      | "kosher"
+                      | "dairy-free"
+                      | "nut-free"
+                    )[]
+                  | undefined,
+                dateRecommended: rec.timestamp,
+              });
+            }
+
+            console.log(`✅ Loaded: ${placeDetails.name}`);
+          } catch (err) {
+            console.warn(`⚠️ Failed to load place ${placeId}:`, err);
+          }
+        }
+
+        console.log("🎉 Finished loading recommendations from Arweave");
+      } catch (error) {
+        console.error("❌ Failed to load recommendations from Arweave:", error);
+      }
+    };
+
     init();
-  }, []);
+  }, [addFood]);
 
   return (
     <>

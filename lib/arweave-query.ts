@@ -114,6 +114,36 @@ const QUERY_BY_AUTHOR = `
 `;
 
 /**
+ * GraphQL query to fetch all recommendations
+ */
+const QUERY_ALL_RECOMMENDATIONS = `
+  query GetAllRecommendations($appName: String!, $first: Int, $after: String) {
+    transactions(
+      tags: [
+        { name: "App-Name", values: [$appName] }
+        { name: "Type", values: ["recommendation"] }
+      ]
+      first: $first
+      after: $after
+      sort: HEIGHT_DESC
+    ) {
+      pageInfo {
+        hasNextPage
+      }
+      edges {
+        cursor
+        node {
+          id
+          owner { address }
+          tags { name value }
+          block { timestamp }
+        }
+      }
+    }
+  }
+`;
+
+/**
  * Execute a GraphQL query against Arweave
  */
 async function executeQuery<T>(
@@ -364,4 +394,57 @@ export async function getUserLikes(
   }
 
   return likesByPlace;
+}
+
+/**
+ * Fetch ALL recommendations from Arweave (for initial app load)
+ * Returns parsed recommendations with their data
+ */
+export async function getAllRecommendations(
+  limit = 100
+): Promise<ParsedRecommendation[]> {
+  console.log("🔍 Fetching all recommendations from Arweave...");
+
+  const data = await executeQuery<{
+    transactions: { edges: TransactionEdge[] };
+  }>(QUERY_ALL_RECOMMENDATIONS, {
+    appName: APP_NAME,
+    first: limit,
+  });
+
+  console.log(
+    `📦 Found ${data.transactions.edges.length} recommendation transactions`
+  );
+
+  const recommendations: ParsedRecommendation[] = [];
+
+  for (const edge of data.transactions.edges) {
+    const { node } = edge;
+    const tagMap = parseTags(node.tags);
+
+    try {
+      const txData = await fetchTransactionData<RecommendationData>(node.id);
+
+      recommendations.push({
+        id: node.id,
+        type: "recommendation",
+        placeId: tagMap["Place-ID"],
+        author: tagMap["Author"],
+        authorChain: tagMap["Author-Chain"] as WalletType,
+        timestamp: tagMap["Timestamp"],
+        blockTimestamp: node.block?.timestamp,
+        data: txData,
+      });
+    } catch (err) {
+      console.warn(
+        `Failed to fetch data for recommendation tx ${node.id}:`,
+        err
+      );
+    }
+  }
+
+  console.log(
+    `✅ Successfully parsed ${recommendations.length} recommendations`
+  );
+  return recommendations;
 }
