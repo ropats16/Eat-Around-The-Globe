@@ -109,27 +109,40 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
 
   addFood: (food, recommender) =>
     set((state) => {
-      // Check for duplicate by placeId
-      const existingIndex = state.foods.findIndex(
-        (f) => f.placeId && f.placeId === food.placeId
-      );
+      // Check for duplicate by placeId (if exists)
+      if (food.placeId) {
+        const existingIndex = state.foods.findIndex(
+          (f) => f.placeId === food.placeId
+        );
 
-      if (existingIndex !== -1) {
-        // Place exists - add recommender to existing place
-        const updatedFoods = [...state.foods];
-        updatedFoods[existingIndex] = {
-          ...updatedFoods[existingIndex],
-          recommenders: [
-            ...updatedFoods[existingIndex].recommenders,
-            recommender,
-          ],
-        };
-        return { foods: updatedFoods };
+        if (existingIndex !== -1) {
+          // Place exists - add recommender to existing place
+          const updatedFoods = [...state.foods];
+          updatedFoods[existingIndex] = {
+            ...updatedFoods[existingIndex],
+            recommenders: [
+              ...updatedFoods[existingIndex].recommenders,
+              recommender,
+            ],
+          };
+          return { foods: updatedFoods };
+        }
+      }
+
+      // Also check for duplicate by id (safety check)
+      const existingById = state.foods.findIndex((f) => f.id === food.id);
+      if (existingById !== -1) {
+        console.warn("⚠️ Duplicate food ID detected, skipping add:", food.id);
+        return state; // Don't add duplicate
       }
 
       // New place - create with recommenders array
+      // Ensure ID is never empty
       const newPlace: FoodPlace = {
         ...food,
+        id:
+          food.id ||
+          `food-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         recommenders: [recommender],
       };
 
@@ -177,8 +190,8 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
   getFilteredFoods: () => {
     const { foods, filters } = get();
 
-    console.log("🔍 FILTERING: Total foods:", foods.length);
-    console.log("🔍 FILTERING: Active filters:", filters);
+    // console.log("🔍 FILTERING: Total foods:", foods.length);
+    // console.log("🔍 FILTERING: Active filters:", filters);
 
     const filtered = foods.filter((food) => {
       // Search query filter
