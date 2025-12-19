@@ -14,9 +14,12 @@ import {
   Clock,
   Award,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { uploadLikeAction } from "@/lib/arweave";
+import { getUserLikeStatus, getPlaceLikeCount } from "@/lib/arweave-query";
 
 const CATEGORY_LABELS: Record<string, string> = {
   "street-food": "Street Food",
@@ -41,12 +44,103 @@ const DIETARY_LABELS: Record<string, string> = {
 };
 
 export default function DetailPanel() {
-  const { selectedFood, isDetailPanelOpen, closeDetailPanel } =
-    useFoodGlobeStore();
-  const [isFavorite, setIsFavorite] = useState(false);
+  const {
+    selectedFood,
+    isDetailPanelOpen,
+    closeDetailPanel,
+    walletAddress,
+    walletType,
+    openWalletModal,
+  } = useFoodGlobeStore();
+
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Fetch like status when place changes
+  useEffect(() => {
+    const placeId = selectedFood?.placeId;
+    if (!placeId) return;
+
+    const fetchLikeData = async () => {
+      try {
+        // Get like count
+        const count = await getPlaceLikeCount(placeId);
+        setLikeCount(count);
+
+        // Get user's like status if connected
+        if (walletAddress) {
+          const liked = await getUserLikeStatus(placeId, walletAddress);
+          setIsLiked(liked ?? false);
+        }
+      } catch (err) {
+        console.error("Failed to fetch like data:", err);
+      }
+    };
+
+    fetchLikeData();
+  }, [selectedFood?.placeId, walletAddress]);
+
+  // Reset state when panel closes
+  useEffect(() => {
+    if (!isDetailPanelOpen) {
+      setIsLiked(false);
+      setLikeCount(0);
+      setCurrentImageIndex(0);
+    }
+  }, [isDetailPanelOpen]);
+
   if (!selectedFood) return null;
+
+  const handleLike = async () => {
+    // Need a placeId to like
+    if (!selectedFood.placeId) {
+      console.error("No placeId available");
+      return;
+    }
+
+    // If not connected, prompt to connect
+    if (!walletAddress) {
+      openWalletModal();
+      return;
+    }
+
+    // Only Arweave wallets can upload
+    if (walletType !== "arweave") {
+      alert(
+        "Please connect an Arweave wallet (Wander) to save interactions on-chain."
+      );
+      return;
+    }
+
+    setIsLikeLoading(true);
+    const newLikedState = !isLiked;
+
+    // Optimistic update
+    setIsLiked(newLikedState);
+    setLikeCount((prev) => prev + (newLikedState ? 1 : -1));
+
+    try {
+      await uploadLikeAction(
+        selectedFood.placeId,
+        newLikedState ? "like" : "unlike",
+        walletAddress,
+        walletType
+      );
+      console.log(
+        `✅ ${newLikedState ? "Liked" : "Unliked"} saved to Arweave!`
+      );
+    } catch (err) {
+      console.error("Failed to save like:", err);
+      // Rollback on failure
+      setIsLiked(!newLikedState);
+      setLikeCount((prev) => prev + (newLikedState ? -1 : 1));
+      alert("Failed to save to Arweave. Please try again.");
+    } finally {
+      setIsLikeLoading(false);
+    }
+  };
 
   const handleShare = async () => {
     try {
@@ -76,7 +170,7 @@ export default function DetailPanel() {
   return (
     <AnimatePresence>
       {isDetailPanelOpen && (
-        <div className="fixed top-20 right-12 w-96 z-50 pointer-events-auto">
+        <div className="fixed top-26 right-12 w-96 z-50 pointer-events-auto">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -199,53 +293,84 @@ export default function DetailPanel() {
                 </div>
 
                 {/* Recommender Info */}
-                {selectedFood.recommenders && selectedFood.recommenders.length > 0 && (
-                  <div className="p-4 bg-linear-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <Award className="w-4 h-4 text-purple-600" />
-                      Recommended by {selectedFood.recommenders.length} {selectedFood.recommenders.length === 1 ? 'person' : 'people'}
-                    </h3>
-                    <div className="space-y-3">
-                      {/* First recommender (original) - shown prominently */}
-                      {selectedFood.recommenders.map((recommender, idx) => (
-                        <div key={idx} className={`flex items-start gap-3 ${idx > 0 ? 'pt-3 border-t border-purple-200' : ''}`}>
-                          {recommender.profilePicture ? (
-                            <Image
-                              src={recommender.profilePicture}
-                              alt={recommender.name}
-                              width={idx === 0 ? 48 : 40}
-                              height={idx === 0 ? 48 : 40}
-                              className={`${idx === 0 ? 'w-12 h-12' : 'w-10 h-10'} rounded-full object-cover ring-2 ${idx === 0 ? 'ring-purple-400' : 'ring-purple-200'}`}
-                            />
-                          ) : (
-                            <div className={`${idx === 0 ? 'w-12 h-12' : 'w-10 h-10'} rounded-full bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center ring-2 ${idx === 0 ? 'ring-purple-400' : 'ring-purple-200'}`}>
-                              <span className={`text-white font-bold ${idx === 0 ? 'text-lg' : 'text-base'}`}>
-                                {recommender.name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className={`${idx === 0 ? 'font-bold' : 'font-semibold'} text-gray-900`}>
-                                {recommender.name}
-                              </p>
-                              {idx === 0 && (
-                                <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-medium">
-                                  Original
+                {selectedFood.recommenders &&
+                  selectedFood.recommenders.length > 0 && (
+                    <div className="p-4 bg-linear-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Award className="w-4 h-4 text-purple-600" />
+                        Recommended by {selectedFood.recommenders.length}{" "}
+                        {selectedFood.recommenders.length === 1
+                          ? "person"
+                          : "people"}
+                      </h3>
+                      <div className="space-y-3">
+                        {/* First recommender (original) - shown prominently */}
+                        {selectedFood.recommenders.map((recommender, idx) => (
+                          <div
+                            key={idx}
+                            className={`flex items-start gap-3 ${
+                              idx > 0 ? "pt-3 border-t border-purple-200" : ""
+                            }`}
+                          >
+                            {recommender.profilePicture ? (
+                              <Image
+                                src={recommender.profilePicture}
+                                alt={recommender.name}
+                                width={idx === 0 ? 48 : 40}
+                                height={idx === 0 ? 48 : 40}
+                                className={`${
+                                  idx === 0 ? "w-12 h-12" : "w-10 h-10"
+                                } rounded-full object-cover ring-2 ${
+                                  idx === 0
+                                    ? "ring-purple-400"
+                                    : "ring-purple-200"
+                                }`}
+                              />
+                            ) : (
+                              <div
+                                className={`${
+                                  idx === 0 ? "w-12 h-12" : "w-10 h-10"
+                                } rounded-full bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center ring-2 ${
+                                  idx === 0
+                                    ? "ring-purple-400"
+                                    : "ring-purple-200"
+                                }`}
+                              >
+                                <span
+                                  className={`text-white font-bold ${
+                                    idx === 0 ? "text-lg" : "text-base"
+                                  }`}
+                                >
+                                  {recommender.name.charAt(0).toUpperCase()}
                                 </span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p
+                                  className={`${
+                                    idx === 0 ? "font-bold" : "font-semibold"
+                                  } text-gray-900`}
+                                >
+                                  {recommender.name}
+                                </p>
+                                {idx === 0 && (
+                                  <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-medium">
+                                    Original
+                                  </span>
+                                )}
+                              </div>
+                              {recommender.caption && (
+                                <p className="text-sm text-gray-600 mt-1 italic">
+                                  &ldquo;{recommender.caption}&rdquo;
+                                </p>
                               )}
                             </div>
-                            {recommender.caption && (
-                              <p className="text-sm text-gray-600 mt-1 italic">
-                                &ldquo;{recommender.caption}&rdquo;
-                              </p>
-                            )}
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Additional Info */}
                 {(selectedFood.address ||
@@ -343,17 +468,25 @@ export default function DetailPanel() {
                 {/* Actions */}
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setIsFavorite(!isFavorite)}
+                    onClick={handleLike}
+                    disabled={isLikeLoading}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-all font-medium text-sm border ${
-                      isFavorite
+                      isLiked
                         ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
                         : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50"
-                    }`}
+                    } ${isLikeLoading ? "opacity-70 cursor-not-allowed" : ""}`}
                   >
-                    <Heart
-                      className={`w-4 h-4 ${isFavorite ? "fill-white" : ""}`}
-                    />
-                    <span>{isFavorite ? "Saved" : "Save"}</span>
+                    {isLikeLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Heart
+                        className={`w-4 h-4 ${isLiked ? "fill-white" : ""}`}
+                      />
+                    )}
+                    <span>
+                      {isLiked ? "Liked" : "Like"}
+                      {likeCount > 0 && ` (${likeCount})`}
+                    </span>
                   </button>
                   <button
                     onClick={handleShare}
