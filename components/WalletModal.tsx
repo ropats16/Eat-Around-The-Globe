@@ -129,8 +129,15 @@ export default function WalletModal() {
 
     // Request permissions from the wallet
     // See: https://docs.wander.app/api/connect
+    // ACCESS_PUBLIC_KEY and SIGNATURE are required for Turbo SDK's ArconnectSigner
     await window.arweaveWallet.connect(
-      ["ACCESS_ADDRESS", "SIGN_TRANSACTION", "DISPATCH"],
+      [
+        "ACCESS_ADDRESS",
+        "ACCESS_PUBLIC_KEY",
+        "SIGN_TRANSACTION",
+        "SIGNATURE",
+        "DISPATCH",
+      ],
       {
         name: "Food Globe",
         logo: "https://food-globe.vercel.app/icon-192x192.png",
@@ -274,6 +281,15 @@ export default function WalletModal() {
                       `}
                       >
                         {wallet.name}
+                        {wallet.id === "arweave" && (
+                          <span
+                            className={`text-base font-medium leading-none mb-0.5
+                        ${isHovered ? "text-white/90" : "text-gray-400"}`}
+                          >
+                            {" "}
+                            ({wallet.description})
+                          </span>
+                        )}
                       </span>
 
                       {/* Loading indicator */}
