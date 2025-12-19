@@ -26,6 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { Recommender, FoodCategory, DietaryTag } from "@/lib/types";
+import { uploadRecommendation } from "@/lib/arweave";
 
 interface PlaceDetailsOverlayProps {
   place: google.maps.places.PlaceResult | null;
@@ -63,6 +64,8 @@ export default function PlaceDetailsOverlay({
   isSaving = false,
 }: PlaceDetailsOverlayProps) {
   const foods = useFoodGlobeStore((state) => state.foods);
+  const walletAddress = useFoodGlobeStore((state) => state.walletAddress);
+  const walletType = useFoodGlobeStore((state) => state.walletType);
 
   // Memoized duplicate detection - check if this place already exists
   const existingPlace = useMemo(() => {
@@ -128,7 +131,7 @@ export default function PlaceDetailsOverlay({
   const photos = place.photos?.slice(0, 3) || [];
   const priceLevel = place.price_level ? "$".repeat(place.price_level) : null;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!recommenderName.trim() || hasUserAlreadyAdded) {
       return;
     }
@@ -142,7 +145,39 @@ export default function PlaceDetailsOverlay({
       dateRecommended: new Date().toISOString(),
     };
 
-    onSaveToMap(recommender);
+    // If Arweave wallet connected, upload FIRST before saving locally
+    if (walletType === "arweave" && walletAddress && place?.place_id) {
+      try {
+        console.log("📤 Uploading recommendation to Arweave...");
+        const result = await uploadRecommendation(
+          place.place_id,
+          {
+            caption: recommenderCaption.trim(),
+            category: selectedCategory || "traditional",
+            dietaryTags: selectedDietary,
+          },
+          walletAddress,
+          walletType
+        );
+        console.log("✅ Recommendation saved to Arweave:", result.id);
+
+        // Only save locally AFTER Arweave succeeds
+        onSaveToMap(recommender);
+      } catch (arweaveError) {
+        console.error("❌ Failed to save to Arweave:", arweaveError);
+        // Don't save locally - show error to user
+        alert("Failed to save recommendation to Arweave. Please try again.");
+        return; // Don't proceed
+      }
+    } else {
+      // No Arweave wallet - just save locally
+      if (walletAddress && walletType !== "arweave") {
+        console.log("ℹ️ Non-Arweave wallet - saving locally only");
+      } else {
+        console.log("ℹ️ No wallet connected - saving locally only");
+      }
+      onSaveToMap(recommender);
+    }
   };
 
   const toggleDietary = (tag: DietaryTag) => {
@@ -158,7 +193,7 @@ export default function PlaceDetailsOverlay({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.2 }}
-        className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-h-[calc(100vh-7rem)] flex flex-col"
+        className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-h-[calc(100vh-7rem)] flex flex-col z-10"
       >
         {/* Scrollable wrapper */}
         <div className="overflow-y-auto custom-scrollbar">
