@@ -97,10 +97,13 @@ export default function WalletModal() {
     // If AppKit modal was closed and we're still in connecting state, reset
     if (!isAppKitModalOpen && connectingWallet === "walletconnect" && !isAppKitConnected) {
       console.log("⚠️ AppKit modal closed without connecting, resetting state");
-      setIsConnecting(false);
-      setConnectingWallet(null);
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => {
+        setIsConnecting(false);
+        setConnectingWallet(null);
+      }, 0);
     }
-  }, [isAppKitModalOpen, connectingWallet, isAppKitConnected]);
+  }, [isAppKitModalOpen, connectingWallet, isAppKitConnected, setIsConnecting]);
 
   // Watch for AppKit connection changes
   useEffect(() => {
