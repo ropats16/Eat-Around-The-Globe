@@ -50,6 +50,7 @@ export default function DetailPanel() {
     closeDetailPanel,
     walletAddress,
     walletType,
+    walletProvider,
     openWalletModal,
   } = useFoodGlobeStore();
 
@@ -101,16 +102,8 @@ export default function DetailPanel() {
     }
 
     // If not connected, prompt to connect
-    if (!walletAddress) {
+    if (!walletAddress || !walletType) {
       openWalletModal();
-      return;
-    }
-
-    // Only Arweave wallets can upload
-    if (walletType !== "arweave") {
-      alert(
-        "Please connect an Arweave wallet (Wander) to save interactions on-chain."
-      );
       return;
     }
 
@@ -125,11 +118,16 @@ export default function DetailPanel() {
       await uploadLikeAction(
         selectedFood.placeId,
         newLikedState ? "like" : "unlike",
-        walletAddress,
-        walletType
+        {
+          walletType,
+          walletAddress,
+          provider: walletProvider, // Pass provider for ETH/SOL
+        }
       );
       console.log(
-        `✅ ${newLikedState ? "Liked" : "Unliked"} saved to Arweave!`
+        `✅ ${
+          newLikedState ? "Liked" : "Unliked"
+        } saved to Arweave via ${walletType}!`
       );
     } catch (err) {
       console.error("Failed to save like:", err);
@@ -169,8 +167,13 @@ export default function DetailPanel() {
 
   return (
     <AnimatePresence>
-      {isDetailPanelOpen && (
-        <div className="fixed top-26 right-12 w-96 z-50 pointer-events-auto">
+      {isDetailPanelOpen && selectedFood && (
+        <div
+          key={`detail-panel-${
+            selectedFood.id || selectedFood.placeId || "default"
+          }`}
+          className="fixed top-26 right-12 w-96 z-50 pointer-events-auto"
+        >
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}

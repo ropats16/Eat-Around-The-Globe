@@ -66,6 +66,7 @@ export default function PlaceDetailsOverlay({
   const foods = useFoodGlobeStore((state) => state.foods);
   const walletAddress = useFoodGlobeStore((state) => state.walletAddress);
   const walletType = useFoodGlobeStore((state) => state.walletType);
+  const walletProvider = useFoodGlobeStore((state) => state.walletProvider);
 
   // Memoized duplicate detection - check if this place already exists
   const existingPlace = useMemo(() => {
@@ -145,10 +146,12 @@ export default function PlaceDetailsOverlay({
       dateRecommended: new Date().toISOString(),
     };
 
-    // If Arweave wallet connected, upload FIRST before saving locally
-    if (walletType === "arweave" && walletAddress && place?.place_id) {
+    // If wallet connected, upload to Arweave FIRST before saving locally
+    if (walletType && walletAddress && place?.place_id) {
       try {
-        console.log("📤 Uploading recommendation to Arweave...");
+        console.log(
+          `📤 Uploading recommendation to Arweave via ${walletType}...`
+        );
         const result = await uploadRecommendation(
           place.place_id,
           {
@@ -156,8 +159,11 @@ export default function PlaceDetailsOverlay({
             category: selectedCategory || "traditional",
             dietaryTags: selectedDietary,
           },
-          walletAddress,
-          walletType
+          {
+            walletType,
+            walletAddress,
+            provider: walletProvider, // Pass provider for ETH/SOL
+          }
         );
         console.log("✅ Recommendation saved to Arweave:", result.id);
 
@@ -170,12 +176,8 @@ export default function PlaceDetailsOverlay({
         return; // Don't proceed
       }
     } else {
-      // No Arweave wallet - just save locally
-      if (walletAddress && walletType !== "arweave") {
-        console.log("ℹ️ Non-Arweave wallet - saving locally only");
-      } else {
-        console.log("ℹ️ No wallet connected - saving locally only");
-      }
+      // No wallet connected - just save locally
+      console.log("ℹ️ No wallet connected - saving locally only");
       onSaveToMap(recommender);
     }
   };

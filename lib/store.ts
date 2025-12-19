@@ -12,6 +12,7 @@ interface FoodGlobeStore {
   // === WALLET STATE ===
   walletType: WalletType;
   walletAddress: string | null;
+  walletProvider: unknown | null; // Provider for ETH/SOL (from AppKit)
   isConnecting: boolean;
   isWalletModalOpen: boolean;
 
@@ -53,7 +54,7 @@ interface FoodGlobeStore {
   ) => void;
 
   // === WALLET ACTIONS ===
-  setWallet: (type: WalletType, address: string) => void;
+  setWallet: (type: WalletType, address: string, provider?: unknown) => void;
   disconnectWallet: () => void;
   openWalletModal: () => void;
   closeWalletModal: () => void;
@@ -95,6 +96,7 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
   // Wallet state
   walletType: null,
   walletAddress: null,
+  walletProvider: null,
   isConnecting: false,
   isWalletModalOpen: false,
 
@@ -264,10 +266,11 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
   },
 
   // === WALLET ACTIONS ===
-  setWallet: (type, address) =>
+  setWallet: (type, address, provider) =>
     set({
       walletType: type,
       walletAddress: address,
+      walletProvider: provider ?? null,
       isConnecting: false,
       isWalletModalOpen: false,
     }),
@@ -276,6 +279,7 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
     set({
       walletType: null,
       walletAddress: null,
+      walletProvider: null,
       userLikes: {}, // Clear user-specific data
       pendingUploads: new Set<string>(),
     }),
