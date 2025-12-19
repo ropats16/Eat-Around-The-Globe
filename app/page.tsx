@@ -17,12 +17,19 @@ import { getAllRecommendations } from "@/lib/arweave-query";
 import { useFoodGlobeStore } from "@/lib/store";
 import WalletButton from "@/components/WalletButton";
 import WalletModal from "@/components/WalletModal";
+import ProfileSetupModal from "@/components/ProfileSetupModal";
+import { fetchUserProfile } from "@/lib/arweave";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [mapsInitialized, setMapsInitialized] = useState(false);
   const [mapboxAvailable, setMapboxAvailable] = useState(false);
   const addFood = useFoodGlobeStore((state) => state.addFood);
+  const walletAddress = useFoodGlobeStore((state) => state.walletAddress);
+  const setUserProfile = useFoodGlobeStore((state) => state.setUserProfile);
+  const setIsLoadingProfile = useFoodGlobeStore(
+    (state) => state.setIsLoadingProfile
+  );
 
   useEffect(() => {
     const init = async () => {
@@ -147,6 +154,37 @@ export default function Home() {
     init();
   }, [addFood]);
 
+  // Background profile fetch when wallet connects
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!walletAddress) {
+        // Wallet disconnected - profile already cleared in store
+        return;
+      }
+
+      setIsLoadingProfile(true);
+      console.log("🔍 Fetching user profile in background...");
+
+      try {
+        const profile = await fetchUserProfile(walletAddress);
+        if (profile) {
+          console.log("✅ Profile loaded:", profile);
+          setUserProfile(profile);
+        } else {
+          console.log("ℹ️ No profile found - user will be prompted on first save");
+          setUserProfile(null);
+        }
+      } catch (error) {
+        console.error("❌ Failed to fetch profile:", error);
+        setUserProfile(null);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, [walletAddress, setUserProfile, setIsLoadingProfile]);
+
   return (
     <>
       <AnimatePresence mode="wait">
@@ -173,6 +211,7 @@ export default function Home() {
 
           <DetailPanel />
           <WalletModal />
+          <ProfileSetupModal />
 
           {/* Warnings */}
           {(!mapsInitialized || !mapboxAvailable) && (
