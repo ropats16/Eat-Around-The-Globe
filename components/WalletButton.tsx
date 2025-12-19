@@ -3,8 +3,10 @@
 import { useFoodGlobeStore } from "@/lib/store";
 import { ChevronDown, LogOut, Loader2, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useDisconnect } from "@reown/appkit/react";
+import { resetSigners } from "@/lib/arweave";
 
 // Wallet info mapping with consistent gradient shades
 const WALLET_INFO = {
@@ -38,8 +40,74 @@ export default function WalletButton() {
     disconnectWallet,
   } = useFoodGlobeStore();
 
+  const { disconnect: disconnectAppKit } = useDisconnect();
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  // Handle disconnect for all wallet types
+  const handleDisconnect = async () => {
+    console.log("=== DISCONNECT CLICKED ===");
+    console.log("1. isDisconnecting state:", isDisconnecting);
+    console.log("2. walletType:", walletType);
+    console.log("3. walletAddress:", walletAddress);
+
+    if (isDisconnecting) {
+      console.log("❌ Already disconnecting, returning early");
+      return;
+    }
+
+    setIsDisconnecting(true);
+    console.log("4. Set isDisconnecting to true");
+
+    try {
+      // Reset cached signers
+      console.log("5. Calling resetSigners()...");
+      resetSigners();
+      console.log("6. resetSigners() completed");
+
+      // If ETH/SOL, also disconnect from AppKit
+      if (walletType === "ethereum" || walletType === "solana") {
+        console.log("7. Wallet is ETH/SOL, attempting AppKit disconnect...");
+        console.log("8. disconnectAppKit function:", typeof disconnectAppKit);
+
+        try {
+          await disconnectAppKit();
+          console.log("✅ 9. AppKit disconnect completed");
+        } catch (appKitError) {
+          console.error("❌ 10. AppKit disconnect error:", appKitError);
+          throw appKitError;
+        }
+      } else {
+        console.log("7. Wallet is not ETH/SOL, skipping AppKit disconnect");
+      }
+
+      // Clear local state
+      console.log("11. Calling disconnectWallet()...");
+      disconnectWallet();
+      console.log("12. disconnectWallet() completed");
+
+      console.log("13. Closing dropdown...");
+      setShowDropdown(false);
+      console.log("✅ 14. DISCONNECT SUCCESSFUL");
+    } catch (err) {
+      console.error("❌ DISCONNECT ERROR:", err);
+      console.error("Error details:", {
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined
+      });
+
+      // Still clear local state even if AppKit disconnect fails
+      console.log("15. Error occurred, clearing local state anyway...");
+      disconnectWallet();
+      setShowDropdown(false);
+      console.log("16. Local state cleared despite error");
+    } finally {
+      setIsDisconnecting(false);
+      console.log("17. Set isDisconnecting to false");
+      console.log("=== DISCONNECT HANDLER COMPLETED ===");
+    }
+  };
 
   // Shorten address for display
   const shortenAddress = (address: string) => {
@@ -188,7 +256,7 @@ export default function WalletButton() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-100"
+              className="fixed inset-0 z-40"
               onClick={() => setShowDropdown(false)}
             />
 
@@ -225,14 +293,18 @@ export default function WalletButton() {
 
               {/* Disconnect Button */}
               <button
-                onClick={() => {
-                  disconnectWallet();
-                  setShowDropdown(false);
-                }}
-                className="w-full flex items-center gap-2.5 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
+                onClick={handleDisconnect}
+                disabled={isDisconnecting}
+                className="w-full flex items-center gap-2.5 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="text-sm font-semibold">Disconnect</span>
+                {isDisconnecting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <LogOut className="w-4 h-4" />
+                )}
+                <span className="text-sm font-semibold">
+                  {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+                </span>
               </button>
             </motion.div>
           </>

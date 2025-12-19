@@ -2,9 +2,15 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFoodGlobeStore } from "@/lib/store";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Smartphone, Monitor } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
+import {
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+} from "@reown/appkit/react";
+import { resetSigners } from "@/lib/arweave";
 
 // Wallet option configuration with official brand colors
 const WALLET_OPTIONS = [
@@ -17,6 +23,8 @@ const WALLET_OPTIONS = [
     hoverBg: "hover:bg-[#EBE0FF]",
     ringColor: "ring-[#6B57F9]",
     installUrl: "https://www.wander.app/",
+    supportsAppKit: false,
+    desktopOnly: true,
   },
   {
     id: "ethereum" as const,
@@ -27,6 +35,8 @@ const WALLET_OPTIONS = [
     hoverBg: "hover:bg-[#FFF0EB]",
     ringColor: "ring-[#FF5C16]",
     installUrl: "https://metamask.io/download/",
+    supportsAppKit: true,
+    desktopOnly: false,
   },
   {
     id: "solana" as const,
@@ -37,6 +47,8 @@ const WALLET_OPTIONS = [
     hoverBg: "hover:bg-[#F3F0FF]",
     ringColor: "ring-[#AB9FF2]",
     installUrl: "https://phantom.app/download",
+    supportsAppKit: true,
+    desktopOnly: false,
   },
 ];
 
@@ -51,58 +63,108 @@ export default function WalletModal() {
 
   const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
   const [hoveredWallet, setHoveredWallet] = useState<string | null>(null);
-  const [isWanderReady, setIsWanderReady] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const wanderReadyRef = useRef(false);
+
+  // AppKit hooks
+  const { open: openAppKit } = useAppKit();
+  const { address: appKitAddress, isConnected: isAppKitConnected } =
+    useAppKitAccount();
+  const { walletProvider: ethProvider } = useAppKitProvider("eip155");
+  const { walletProvider: solProvider } = useAppKitProvider("solana");
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || "ontouchstart" in window);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Listen for Wander wallet injection
   useEffect(() => {
-    // Check if already available
     if (window.arweaveWallet) {
       console.log("✅ Wander wallet already available");
-      setIsWanderReady(true);
       wanderReadyRef.current = true;
       return;
     }
 
-    // Listen for the wallet to be injected
     const handleWalletLoaded = () => {
       console.log("✅ arweaveWalletLoaded event fired");
-      setIsWanderReady(true);
       wanderReadyRef.current = true;
     };
 
     window.addEventListener("arweaveWalletLoaded", handleWalletLoaded);
-
     return () => {
       window.removeEventListener("arweaveWalletLoaded", handleWalletLoaded);
     };
   }, []);
 
+  // Watch for AppKit connection changes
+  useEffect(() => {
+    if (isAppKitConnected && appKitAddress && connectingWallet) {
+      // Determine wallet type based on address format
+      const isEthereum = appKitAddress.startsWith("0x");
+      const walletTypeDetected = isEthereum ? "ethereum" : "solana";
+      const provider = isEthereum ? ethProvider : solProvider;
+
+      console.log(
+        `✅ Connected via AppKit: ${walletTypeDetected}`,
+        appKitAddress
+      );
+
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => {
+        setWallet(walletTypeDetected, appKitAddress, provider);
+        setConnectingWallet(null);
+        setIsConnecting(false);
+        closeWalletModal();
+      }, 0);
+    }
+  }, [
+    isAppKitConnected,
+    appKitAddress,
+    connectingWallet,
+    ethProvider,
+    solProvider,
+    setWallet,
+    setIsConnecting,
+    closeWalletModal,
+  ]);
+
   const handleConnect = async (walletId: "arweave" | "ethereum" | "solana") => {
+    const wallet = WALLET_OPTIONS.find((w) => w.id === walletId);
+
+    // Check if trying to use Wander on mobile
+    if (wallet?.desktopOnly && isMobile) {
+      alert("Wander wallet is only available on desktop browsers.");
+      return;
+    }
+
     setIsConnecting(true);
     setConnectingWallet(walletId);
 
     try {
-      switch (walletId) {
-        case "arweave":
-          await connectArweave();
-          break;
-        case "ethereum":
-          await connectEthereum();
-          break;
-        case "solana":
-          await connectSolana();
-          break;
+      if (walletId === "arweave") {
+        // Arweave uses direct extension connection
+        await connectArweave();
+        closeWalletModal();
+      } else {
+        // ETH/SOL use AppKit (WalletConnect)
+        // Reset any cached signers when switching wallets
+        resetSigners();
+
+        // Open AppKit modal - it handles QR codes, deep links, etc.
+        await openAppKit();
+        // Connection will be handled by the useEffect above
       }
-      // Close modal on successful connection
-      closeWalletModal();
     } catch (error) {
       console.error(`Failed to connect ${walletId}:`, error);
-      // Don't show alert for user cancellation
       if (error instanceof Error && !error.message.includes("cancelled")) {
         alert(`Failed to connect: ${error.message}`);
       }
-    } finally {
       setIsConnecting(false);
       setConnectingWallet(null);
     }
@@ -110,26 +172,14 @@ export default function WalletModal() {
 
   const connectArweave = async () => {
     console.log("🔗 Connecting to Wander (Injected API)...");
-    console.log(
-      "🔍 isWanderReady:",
-      isWanderReady,
-      "ref:",
-      wanderReadyRef.current
-    );
-    console.log("🔍 window.arweaveWallet:", window.arweaveWallet);
 
-    // Check if wallet is available
     if (!window.arweaveWallet) {
-      // Wallet not installed - open download page
       window.open("https://www.wander.app/", "_blank");
       throw new Error(
         "Wander wallet not installed. Please install and refresh."
       );
     }
 
-    // Request permissions from the wallet
-    // See: https://docs.wander.app/api/connect
-    // ACCESS_PUBLIC_KEY and SIGNATURE are required for Turbo SDK's ArconnectSigner
     await window.arweaveWallet.connect(
       [
         "ACCESS_ADDRESS",
@@ -144,39 +194,12 @@ export default function WalletModal() {
       }
     );
 
-    // Get the active address
     const address = await window.arweaveWallet.getActiveAddress();
     console.log("✅ Connected to Wander:", address);
 
     setWallet("arweave", address);
-  };
-
-  const connectEthereum = async () => {
-    if (!window.ethereum) {
-      window.open("https://metamask.io/download/", "_blank");
-      throw new Error("MetaMask not installed");
-    }
-
-    const accounts = (await window.ethereum.request({
-      method: "eth_requestAccounts",
-    })) as string[];
-
-    if (accounts && accounts.length > 0) {
-      setWallet("ethereum", accounts[0]);
-    } else {
-      throw new Error("No accounts found");
-    }
-  };
-
-  const connectSolana = async () => {
-    if (!window.solana || !window.solana.isPhantom) {
-      window.open("https://phantom.app/download", "_blank");
-      throw new Error("Phantom wallet not installed");
-    }
-
-    const response = await window.solana.connect();
-    const address = response.publicKey.toString();
-    setWallet("solana", address);
+    setIsConnecting(false);
+    setConnectingWallet(null);
   };
 
   return (
@@ -192,7 +215,7 @@ export default function WalletModal() {
             className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50"
           />
 
-          {/* Modal - Centered on mobile, positioned on desktop */}
+          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -227,6 +250,7 @@ export default function WalletModal() {
                 {WALLET_OPTIONS.map((wallet, index) => {
                   const isThisConnecting = connectingWallet === wallet.id;
                   const isHovered = hoveredWallet === wallet.id;
+                  const isDisabledOnMobile = wallet.desktopOnly && isMobile;
 
                   return (
                     <motion.button
@@ -237,13 +261,14 @@ export default function WalletModal() {
                       onClick={() => handleConnect(wallet.id)}
                       onMouseEnter={() => setHoveredWallet(wallet.id)}
                       onMouseLeave={() => setHoveredWallet(null)}
-                      disabled={isConnecting}
+                      disabled={isConnecting || isDisabledOnMobile}
                       className={`
                         w-full flex items-center gap-3 p-3 rounded-2xl
                         transition-all duration-200 ease-out
                         disabled:cursor-not-allowed
+                        ${isDisabledOnMobile ? "opacity-50" : ""}
                         ${
-                          isHovered && !isConnecting
+                          isHovered && !isConnecting && !isDisabledOnMobile
                             ? `bg-blue-500/50 shadow-lg shadow-blue-500/25 scale-[1.02]`
                             : "bg-gray-50 hover:bg-gray-100"
                         }
@@ -255,7 +280,7 @@ export default function WalletModal() {
                         w-11 h-11 rounded-xl overflow-hidden shrink-0
                         flex items-center justify-center
                         transition-transform duration-200 shadow-md shadow-black/10
-                        ${isHovered ? "scale-110" : ""}
+                        ${isHovered && !isDisabledOnMobile ? "scale-110" : ""}
                         ${wallet.id !== "solana" && "bg-white p-1"}
                       `}
                       >
@@ -268,29 +293,56 @@ export default function WalletModal() {
                         />
                       </div>
 
-                      {/* Wallet Name */}
-                      <span
-                        className={`
-                        text-base font-semibold flex-1 text-left
-                        transition-colors duration-200
-                        ${
-                          isHovered
-                            ? "text-white font-black text-lg"
-                            : "text-gray-900"
-                        }
-                      `}
-                      >
-                        {wallet.name}
-                        {wallet.id === "arweave" && (
-                          <span
-                            className={`text-base font-medium leading-none mb-0.5
-                        ${isHovered ? "text-white/90" : "text-gray-400"}`}
-                          >
-                            {" "}
-                            ({wallet.description})
-                          </span>
-                        )}
-                      </span>
+                      {/* Wallet Info */}
+                      <div className="flex-1 text-left">
+                        <span
+                          className={`
+                          text-base font-semibold block
+                          transition-colors duration-200
+                          ${
+                            isHovered && !isDisabledOnMobile
+                              ? "text-white font-black text-lg"
+                              : "text-gray-900"
+                          }
+                        `}
+                        >
+                          {wallet.name}
+                          {wallet.id === "arweave" && (
+                            <span
+                              className={`text-sm font-medium
+                              ${
+                                isHovered && !isDisabledOnMobile
+                                  ? "text-white/90"
+                                  : "text-gray-400"
+                              }`}
+                            >
+                              {" "}
+                              ({wallet.description})
+                            </span>
+                          )}
+                        </span>
+
+                        {/* Mobile/Desktop indicator */}
+                        <span
+                          className={`text-xs flex items-center gap-1 mt-0.5
+                          ${
+                            isHovered && !isDisabledOnMobile
+                              ? "text-white/70"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {wallet.desktopOnly ? (
+                            <>
+                              <Monitor className="w-3 h-3" /> Desktop only
+                            </>
+                          ) : (
+                            <>
+                              <Smartphone className="w-3 h-3" /> Mobile &
+                              Desktop
+                            </>
+                          )}
+                        </span>
+                      </div>
 
                       {/* Loading indicator */}
                       {isThisConnecting && (
@@ -308,8 +360,9 @@ export default function WalletModal() {
               {/* Footer */}
               <div className="px-6 pb-6 pt-2">
                 <p className="text-xs text-gray-400 text-center leading-relaxed">
-                  By connecting, your interactions will be saved permanently on
-                  Arweave
+                  {isMobile
+                    ? "Scan QR code or use deep link to connect your mobile wallet"
+                    : "By connecting, your interactions will be saved permanently on Arweave"}
                 </p>
               </div>
             </div>
