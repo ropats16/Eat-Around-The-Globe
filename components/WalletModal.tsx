@@ -94,19 +94,47 @@ export default function WalletModal() {
 
   // Watch for AppKit modal close (user cancelled)
   useEffect(() => {
+    console.log("🔍 [MODAL CLOSE WATCH] State:", {
+      isAppKitModalOpen,
+      connectingWallet,
+      isAppKitConnected,
+      timestamp: new Date().toISOString(),
+    });
+
     // If AppKit modal was closed and we're still in connecting state, reset
+    // But wait 1000ms to give isAppKitConnected time to update (prevents race condition)
     if (!isAppKitModalOpen && connectingWallet === "walletconnect" && !isAppKitConnected) {
-      console.log("⚠️ AppKit modal closed without connecting, resetting state");
-      // Use setTimeout to avoid synchronous setState in effect
-      setTimeout(() => {
+      console.log("⚠️ [RESET TRIGGER] AppKit modal closed, waiting 1000ms to check connection...");
+
+      const timeoutId = setTimeout(() => {
+        console.log("🔄 [RESET CHECK] Timeout fired - if connection succeeded, this will be cancelled");
+        // If we reach here, it means isAppKitConnected didn't update to true within 1000ms
+        // This indicates the user truly cancelled (didn't scan QR or scan failed)
+        console.log("🔄 [RESET EXECUTED] User cancelled - clearing connecting state");
         setIsConnecting(false);
         setConnectingWallet(null);
-      }, 0);
+      }, 1000);
+
+      // Cleanup: If isAppKitConnected becomes true before timeout fires,
+      // this effect re-runs and cleanup cancels the timeout
+      return () => {
+        console.log("🧹 [CLEANUP] Clearing reset timeout (likely because connection succeeded)");
+        clearTimeout(timeoutId);
+      };
     }
   }, [isAppKitModalOpen, connectingWallet, isAppKitConnected, setIsConnecting]);
 
   // Watch for AppKit connection changes
   useEffect(() => {
+    console.log("🔍 [CONNECTION WATCH] State:", {
+      isAppKitConnected,
+      appKitAddress,
+      connectingWallet,
+      hasEthProvider: !!ethProvider,
+      hasSolProvider: !!solProvider,
+      timestamp: new Date().toISOString(),
+    });
+
     if (isAppKitConnected && appKitAddress && connectingWallet) {
       // Determine wallet type based on address format
       const isEthereum = appKitAddress.startsWith("0x");
@@ -114,12 +142,13 @@ export default function WalletModal() {
       const provider = isEthereum ? ethProvider : solProvider;
 
       console.log(
-        `✅ Connected via AppKit: ${walletTypeDetected}`,
+        `✅ [CONNECTION SUCCESS] Connected via AppKit: ${walletTypeDetected}`,
         appKitAddress
       );
 
       // Use setTimeout to avoid synchronous setState in effect
       setTimeout(() => {
+        console.log("🎉 [WALLET SET] Setting wallet in store");
         setWallet(walletTypeDetected, appKitAddress, provider);
         setConnectingWallet(null);
         setIsConnecting(false);
@@ -138,6 +167,7 @@ export default function WalletModal() {
   ]);
 
   const handleConnect = async (walletId: "arweave" | "walletconnect") => {
+    console.log(`🚀 [CONNECT CLICK] User clicked: ${walletId}`);
     const wallet = WALLET_OPTIONS.find((w) => w.id === walletId);
 
     // Check if trying to use Wander on mobile
@@ -146,26 +176,31 @@ export default function WalletModal() {
       return;
     }
 
+    console.log(`📝 [STATE UPDATE] Setting connecting state for: ${walletId}`);
     setIsConnecting(true);
     setConnectingWallet(walletId);
 
     try {
       if (walletId === "arweave") {
         // Arweave uses direct extension connection
+        console.log("🔗 [ARWEAVE] Connecting to Wander...");
         await connectArweave();
         closeWalletModal();
       } else if (walletId === "walletconnect") {
         // WalletConnect opens AppKit modal with filtered wallet options
         // Reset any cached signers when switching wallets
+        console.log("🔄 [WALLETCONNECT] Resetting signers...");
         resetSigners();
 
+        console.log("🌐 [WALLETCONNECT] Opening AppKit modal...");
         // Open AppKit modal - it shows MetaMask, Phantom, etc. based on featuredWalletIds
         // The useEffect above will detect if it's ethereum or solana based on address format
         await openAppKit();
+        console.log("✅ [WALLETCONNECT] AppKit modal opened (awaiting user interaction)");
         // Connection will be handled by the useEffect above which sets walletType to "ethereum" or "solana"
       }
     } catch (error) {
-      console.error(`Failed to connect ${walletId}:`, error);
+      console.error(`❌ [CONNECT ERROR] Failed to connect ${walletId}:`, error);
       if (error instanceof Error && !error.message.includes("cancelled")) {
         alert(`Failed to connect: ${error.message}`);
       }
