@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { FoodPlace, Filters, Recommender } from "./types";
-import { WalletType } from "./wallet-types";
+import { WalletType, ProfileData } from "./wallet-types";
 
 interface FoodGlobeStore {
   // Data
@@ -21,6 +21,11 @@ interface FoodGlobeStore {
   likeCounts: Record<string, number>; // placeId → total likes from all users
   pendingUploads: Set<string>; // placeIds currently being uploaded
   isLoadingInteractions: boolean;
+
+  // === USER PROFILE ===
+  userProfile: ProfileData | null;
+  isLoadingProfile: boolean;
+  isProfileModalOpen: boolean;
 
   // Filters
   filters: Filters;
@@ -68,6 +73,12 @@ interface FoodGlobeStore {
   removePendingUpload: (placeId: string) => void;
   setIsLoadingInteractions: (loading: boolean) => void;
 
+  // === PROFILE ACTIONS ===
+  setUserProfile: (profile: ProfileData | null) => void;
+  openProfileModal: () => void;
+  closeProfileModal: () => void;
+  setIsLoadingProfile: (loading: boolean) => void;
+
   // === HELPER ===
   isPlaceLiked: (placeId: string) => boolean;
   getLikeCount: (placeId: string) => number;
@@ -105,6 +116,11 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
   likeCounts: {},
   pendingUploads: new Set<string>(),
   isLoadingInteractions: false,
+
+  // Profile state
+  userProfile: null,
+  isLoadingProfile: false,
+  isProfileModalOpen: false,
 
   // Actions
   setFoods: (foods) => set({ foods }),
@@ -282,6 +298,7 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
       walletProvider: null,
       userLikes: {}, // Clear user-specific data
       pendingUploads: new Set<string>(),
+      userProfile: null, // Clear profile on disconnect
     }),
 
   openWalletModal: () => set({ isWalletModalOpen: true }),
@@ -335,6 +352,15 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
 
   setIsLoadingInteractions: (loading) =>
     set({ isLoadingInteractions: loading }),
+
+  // === PROFILE ACTIONS ===
+  setUserProfile: (profile) => set({ userProfile: profile }),
+
+  openProfileModal: () => set({ isProfileModalOpen: true }),
+
+  closeProfileModal: () => set({ isProfileModalOpen: false }),
+
+  setIsLoadingProfile: (loading) => set({ isLoadingProfile: loading }),
 
   // === HELPERS ===
   isPlaceLiked: (placeId) => {

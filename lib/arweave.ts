@@ -15,6 +15,7 @@ import type {
   LikeData,
   CommentData,
   WalletType,
+  ProfileData,
 } from "./wallet-types";
 
 // App identifier for all our transactions
@@ -399,6 +400,97 @@ export async function uploadComment(
 
   const dataItem = await createSignedDataItem(signer, commentData, tags);
   return uploadDataItem(dataItem);
+}
+
+/**
+ * Upload a user profile to Arweave
+ */
+export async function uploadProfile(
+  data: ProfileData,
+  config: UploadConfig
+): Promise<{ id: string }> {
+  const signer = await createSigner({
+    walletType: config.walletType,
+    provider: config.provider,
+  });
+
+  // Profile tags - no Place-ID needed
+  const tags = [
+    { name: "App-Name", value: APP_NAME },
+    { name: "Type", value: "profile" as InteractionType },
+    { name: "Author", value: config.walletAddress },
+    { name: "Author-Chain", value: config.walletType || "arweave" },
+    { name: "Version", value: new Date().toISOString() }, // Timestamp for versioning
+    { name: "Content-Type", value: "application/json" },
+  ];
+
+  const dataItem = await createSignedDataItem(signer, data, tags);
+  return uploadDataItem(dataItem);
+}
+
+/**
+ * Fetch the latest user profile from Arweave
+ */
+export async function fetchUserProfile(
+  walletAddress: string
+): Promise<ProfileData | null> {
+  try {
+    console.log("🔍 Fetching profile for:", walletAddress);
+
+    const query = `
+      query GetUserProfile($author: String!) {
+        transactions(
+          tags: [
+            { name: "App-Name", values: ["${APP_NAME}"] }
+            { name: "Type", values: ["profile"] }
+            { name: "Author", values: [$author] }
+          ]
+          sort: HEIGHT_DESC
+          first: 1
+        ) {
+          edges {
+            node {
+              id
+              tags {
+                name
+                value
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await fetch("https://arweave.net/graphql", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        variables: { author: walletAddress },
+      }),
+    });
+
+    const result = await response.json();
+    const edges = result.data?.transactions?.edges || [];
+
+    if (edges.length === 0) {
+      console.log("ℹ️ No profile found for:", walletAddress);
+      return null;
+    }
+
+    const txId = edges[0].node.id;
+    console.log("✅ Found profile transaction:", txId);
+
+    // Fetch the actual data
+    const dataResponse = await fetch(`https://arweave.net/${txId}`);
+    const profileData: ProfileData = await dataResponse.json();
+
+    console.log("✅ Profile loaded:", profileData);
+    return profileData;
+  } catch (error) {
+    console.error("❌ Failed to fetch profile:", error);
+    return null;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

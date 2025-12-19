@@ -12,7 +12,12 @@ export interface WalletState {
 }
 
 // Arweave transaction types
-export type InteractionType = "recommendation" | "like" | "unlike" | "comment";
+export type InteractionType =
+  | "recommendation"
+  | "like"
+  | "unlike"
+  | "comment"
+  | "profile";
 
 // What we store in each Arweave transaction
 export interface RecommendationData {
@@ -45,4 +50,15 @@ export interface ArweaveTags {
   "Author-Chain": WalletType;
   Timestamp: string;
   "Content-Type": string;
+}
+
+// User profile data stored on Arweave
+export interface ProfileData {
+  username: string; // Display name (can be X handle if connected via X)
+  pfp?: string;
+  xConnected?: boolean; // True if username came from X OAuth
+  bio?: string;
+  // Future expansion fields:
+  // linkedWallets?: string[];
+  // preferences?: Record<string, unknown>;
 }
