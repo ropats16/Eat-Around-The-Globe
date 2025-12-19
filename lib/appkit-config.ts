@@ -54,6 +54,24 @@ try {
   console.warn("Could not clear WalletConnect storage:", error);
 }
 
+// Only include these specific wallets - limits the wallet list
+const includeWalletIds = [
+  // EVM wallets
+  "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96", // MetaMask
+  // "4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0", // Trust Wallet
+  "1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369", // Rainbow
+
+  // Solana wallets
+  // "225affb176778569276e484e1b92637ad061b01e13a048b35a9d280c3b58970f", // Phantom
+  "a797aa35c0fadbfc1a53e7f675162ed5226968b44a19ee3d24385c64d1d3c393", // Phantom
+];
+
+console.log("🔧 AppKit Config - includeWalletIds:", includeWalletIds);
+console.log(
+  "🔧 AppKit Config - projectId:",
+  projectId ? "✅ Set" : "❌ Missing"
+);
+
 // Create and export AppKit instance
 export const appKit = projectId
   ? createAppKit({
@@ -61,6 +79,9 @@ export const appKit = projectId
       networks: networks as [typeof mainnet, ...typeof networks],
       projectId,
       metadata,
+      includeWalletIds, // Restrict to only these wallets
+      featuredWalletIds: includeWalletIds, // Also feature them
+      enableWalletGuide: false, // Don't show wallet guide
       features: {
         analytics: false,
         email: false,
@@ -69,6 +90,8 @@ export const appKit = projectId
       themeMode: "light",
     })
   : null;
+
+console.log("🔧 AppKit instance created:", appKit ? "✅ Success" : "❌ Failed");
 
 // Export for type inference
 export type AppKitInstance = typeof appKit;
