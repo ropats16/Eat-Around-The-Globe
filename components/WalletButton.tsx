@@ -3,7 +3,7 @@
 import { useFoodGlobeStore } from "@/lib/store";
 import { ChevronDown, LogOut, Loader2, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useDisconnect } from "@reown/appkit/react";
 import { resetSigners } from "@/lib/arweave";
@@ -14,20 +14,20 @@ const WALLET_INFO = {
     name: "Wander",
     icon: "/wallets/Wander.png",
     gradient: "from-[#6B57F9] to-[#4B3BD9]",
-    // lightBg: "bg-[#EBE0FF]",
     lightBg: "bg-violet-100",
   },
+  // Both ethereum and solana display as WalletConnect in UI
   ethereum: {
-    name: "MetaMask",
-    icon: "/wallets/MetaMask.svg",
-    gradient: "from-[#FF5C16] to-[#CC4A11]",
-    lightBg: "bg-[#FFF0EB]",
+    name: "WalletConnect",
+    icon: "/wallets/WalletConnect.svg",
+    gradient: "from-[#3396FF] to-[#2577DD]",
+    lightBg: "bg-blue-50",
   },
   solana: {
-    name: "Phantom",
-    icon: "/wallets/Phantom.svg",
-    gradient: "from-[#AB9FF2] to-[#8B7FD2]",
-    lightBg: "bg-[#F3F0FF]",
+    name: "WalletConnect",
+    icon: "/wallets/WalletConnect.svg",
+    gradient: "from-[#3396FF] to-[#2577DD]",
+    lightBg: "bg-blue-50",
   },
 };
 
@@ -94,7 +94,7 @@ export default function WalletButton() {
       console.error("❌ DISCONNECT ERROR:", err);
       console.error("Error details:", {
         message: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined
+        stack: err instanceof Error ? err.stack : undefined,
       });
 
       // Still clear local state even if AppKit disconnect fails
@@ -166,8 +166,8 @@ export default function WalletButton() {
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-sm overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
             <Image
-              src="/wallets/Wander.png"
-              alt="Wander"
+              src="/wallets/WalletConnect.svg"
+              alt="WalletConnect"
               width={24}
               height={24}
               objectFit="cover"
@@ -176,22 +176,12 @@ export default function WalletButton() {
           </div>
           <div className="w-6 h-6 rounded-sm overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
             <Image
-              src="/wallets/MetaMask.svg"
-              alt="MetaMask"
-              width={20}
-              height={20}
-              objectFit="cover"
-              className="w-full h-full object-contain rounded-lg"
-            />
-          </div>
-          <div className="w-6 h-6 rounded-sm overflow-hidden shadow-md shadow-black/10">
-            <Image
-              src="/wallets/Phantom.svg"
-              alt="Phantom"
+              src="/wallets/Wander.png"
+              alt="Wander"
               width={24}
               height={24}
               objectFit="cover"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain rounded-lg"
             />
           </div>
         </div>

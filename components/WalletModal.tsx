@@ -9,11 +9,24 @@ import {
   useAppKit,
   useAppKitAccount,
   useAppKitProvider,
+  useAppKitState,
 } from "@reown/appkit/react";
 import { resetSigners } from "@/lib/arweave";
 
 // Wallet option configuration with official brand colors
 const WALLET_OPTIONS = [
+  {
+    id: "walletconnect" as const,
+    name: "WalletConnect",
+    description: "Ethereum, Solana & More",
+    icon: "/wallets/WalletConnect.svg",
+    bgColor: "bg-[#3396FF]",
+    hoverBg: "hover:bg-[#E8F4FF]",
+    ringColor: "ring-[#3396FF]",
+    installUrl: "https://walletconnect.com/",
+    supportsAppKit: true,
+    desktopOnly: false,
+  },
   {
     id: "arweave" as const,
     name: "Wander",
@@ -25,30 +38,6 @@ const WALLET_OPTIONS = [
     installUrl: "https://www.wander.app/",
     supportsAppKit: false,
     desktopOnly: true,
-  },
-  {
-    id: "ethereum" as const,
-    name: "MetaMask",
-    description: "Ethereum",
-    icon: "/wallets/MetaMask.svg",
-    bgColor: "bg-[#FF5C16]",
-    hoverBg: "hover:bg-[#FFF0EB]",
-    ringColor: "ring-[#FF5C16]",
-    installUrl: "https://metamask.io/download/",
-    supportsAppKit: true,
-    desktopOnly: false,
-  },
-  {
-    id: "solana" as const,
-    name: "Phantom",
-    description: "Solana",
-    icon: "/wallets/Phantom.svg",
-    bgColor: "bg-[#AB9FF2]",
-    hoverBg: "hover:bg-[#F3F0FF]",
-    ringColor: "ring-[#AB9FF2]",
-    installUrl: "https://phantom.app/download",
-    supportsAppKit: true,
-    desktopOnly: false,
   },
 ];
 
@@ -72,6 +61,7 @@ export default function WalletModal() {
     useAppKitAccount();
   const { walletProvider: ethProvider } = useAppKitProvider("eip155");
   const { walletProvider: solProvider } = useAppKitProvider("solana");
+  const { open: isAppKitModalOpen } = useAppKitState();
 
   // Detect mobile
   useEffect(() => {
@@ -101,6 +91,16 @@ export default function WalletModal() {
       window.removeEventListener("arweaveWalletLoaded", handleWalletLoaded);
     };
   }, []);
+
+  // Watch for AppKit modal close (user cancelled)
+  useEffect(() => {
+    // If AppKit modal was closed and we're still in connecting state, reset
+    if (!isAppKitModalOpen && connectingWallet === "walletconnect" && !isAppKitConnected) {
+      console.log("⚠️ AppKit modal closed without connecting, resetting state");
+      setIsConnecting(false);
+      setConnectingWallet(null);
+    }
+  }, [isAppKitModalOpen, connectingWallet, isAppKitConnected]);
 
   // Watch for AppKit connection changes
   useEffect(() => {
@@ -134,7 +134,7 @@ export default function WalletModal() {
     closeWalletModal,
   ]);
 
-  const handleConnect = async (walletId: "arweave" | "ethereum" | "solana") => {
+  const handleConnect = async (walletId: "arweave" | "walletconnect") => {
     const wallet = WALLET_OPTIONS.find((w) => w.id === walletId);
 
     // Check if trying to use Wander on mobile
@@ -151,14 +151,15 @@ export default function WalletModal() {
         // Arweave uses direct extension connection
         await connectArweave();
         closeWalletModal();
-      } else {
-        // ETH/SOL use AppKit (WalletConnect)
+      } else if (walletId === "walletconnect") {
+        // WalletConnect opens AppKit modal with filtered wallet options
         // Reset any cached signers when switching wallets
         resetSigners();
 
-        // Open AppKit modal - it handles QR codes, deep links, etc.
+        // Open AppKit modal - it shows MetaMask, Phantom, etc. based on featuredWalletIds
+        // The useEffect above will detect if it's ethereum or solana based on address format
         await openAppKit();
-        // Connection will be handled by the useEffect above
+        // Connection will be handled by the useEffect above which sets walletType to "ethereum" or "solana"
       }
     } catch (error) {
       console.error(`Failed to connect ${walletId}:`, error);
@@ -280,8 +281,8 @@ export default function WalletModal() {
                         w-11 h-11 rounded-xl overflow-hidden shrink-0
                         flex items-center justify-center
                         transition-transform duration-200 shadow-md shadow-black/10
+                        bg-white p-1
                         ${isHovered && !isDisabledOnMobile ? "scale-110" : ""}
-                        ${wallet.id !== "solana" && "bg-white p-1"}
                       `}
                       >
                         <Image
