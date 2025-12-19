@@ -114,7 +114,11 @@ export default function SearchBar() {
       // Use recommender's dietary info if provided (user selection takes precedence over auto-detection)
       const dietaryInfo = recommender.dietaryInfo;
 
-      const foodPlace = convertGooglePlaceToFoodPlace(selectedPlace, category, dietaryInfo);
+      const foodPlace = convertGooglePlaceToFoodPlace(
+        selectedPlace,
+        category,
+        dietaryInfo
+      );
 
       console.log("🔍 DIAGNOSTIC: About to add food");
       console.log("📍 FoodPlace category:", foodPlace.category);
@@ -143,7 +147,7 @@ export default function SearchBar() {
   return (
     <div
       ref={searchRef}
-      className="absolute top-6 right-12 w-96 pointer-events-auto"
+      className="absolute top-26 right-12 w-96 pointer-events-auto"
     >
       {/* Main Search Input - Shadcn Input Group */}
       <InputGroup className="h-12 rounded-lg bg-white shadow-[0_1px_6px_rgba(32,33,36,0.28)] hover:shadow-[0_2px_8px_rgba(32,33,36,0.28)] transition-shadow duration-200">

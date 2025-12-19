@@ -9,6 +9,8 @@ import SearchBar from "@/components/SearchBar";
 import DetailPanel from "@/components/DetailPanel";
 import LoadingScreen from "@/components/LoadingScreen";
 import { initGoogleMaps } from "@/lib/google-places";
+import WalletButton from "@/components/WalletButton";
+import WalletModal from "@/components/WalletModal";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
@@ -55,8 +57,16 @@ export default function Home() {
           {/* UI Components */}
           <Sidebar />
           <ActivityFeed />
+
+          {/* Wallet Button - above SearchBar, same width */}
+          <div className="absolute top-6 right-12 w-96 z-20 pointer-events-auto">
+            <WalletButton />
+          </div>
+
           <SearchBar />
+
           <DetailPanel />
+          <WalletModal />
 
           {/* Warnings */}
           {(!mapsInitialized || !mapboxAvailable) && (
