@@ -1,8 +1,14 @@
 // lib/arweave.ts
-// Arweave upload service using Turbo SDK
+// Arweave upload service with multi-wallet support using arbundles
 
-import { TurboFactory, ArconnectSigner } from "@ardrive/turbo-sdk/web";
-import type { TurboAuthenticatedClient } from "@ardrive/turbo-sdk/web";
+import {
+  createData,
+  ArconnectSigner,
+  InjectedEthereumSigner,
+  InjectedSolanaSigner,
+  DataItem,
+} from "@dha-team/arbundles";
+import type { Signer } from "@dha-team/arbundles";
 import type {
   InteractionType,
   RecommendationData,
@@ -14,12 +20,11 @@ import type {
 // App identifier for all our transactions
 const APP_NAME = "Food-Globe";
 
-// Singleton Turbo client
-let turboClient: TurboAuthenticatedClient | null = null;
+// Turbo upload endpoint
+const TURBO_UPLOAD_URL = "https://upload.ardrive.io/v1/tx";
 
 /**
  * Required permissions for Wander wallet
- * ACCESS_PUBLIC_KEY and SIGNATURE are required for Turbo SDK's ArconnectSigner
  */
 export const ARWEAVE_PERMISSIONS = [
   "ACCESS_ADDRESS",
@@ -31,33 +36,183 @@ export const ARWEAVE_PERMISSIONS = [
 
 type ArweavePermission = (typeof ARWEAVE_PERMISSIONS)[number];
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SIGNER CREATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface SignerConfig {
+  walletType: WalletType;
+  provider?: unknown; // For ETH/SOL - the wallet provider from AppKit
+}
+
+// Cache for initialized signers (to avoid multiple setPublicKey calls)
+let cachedArweaveSigner: ArconnectSigner | null = null;
+let cachedEthereumSigner: InjectedEthereumSigner | null = null;
+let cachedSolanaSigner: InjectedSolanaSigner | null = null;
+
 /**
- * Check and request missing permissions
- * Returns true if all permissions are granted
+ * Reset all cached signers (call on wallet disconnect)
  */
-export async function ensurePermissions(): Promise<boolean> {
-  if (!window.arweaveWallet) {
-    throw new Error("Arweave wallet not available. Please connect Wander.");
+export function resetSigners(): void {
+  cachedArweaveSigner = null;
+  cachedEthereumSigner = null;
+  cachedSolanaSigner = null;
+}
+
+/**
+ * Create a signer based on wallet type
+ */
+export async function createSigner(config: SignerConfig): Promise<Signer> {
+  switch (config.walletType) {
+    case "arweave":
+      return createArweaveSigner();
+
+    case "ethereum":
+      if (!config.provider) {
+        throw new Error("Ethereum provider required");
+      }
+      return createEthereumSigner(config.provider);
+
+    case "solana":
+      if (!config.provider) {
+        throw new Error("Solana provider required");
+      }
+      return createSolanaSigner(config.provider);
+
+    default:
+      throw new Error(`Unsupported wallet type: ${config.walletType}`);
+  }
+}
+
+/**
+ * Create Arweave signer from Wander extension
+ */
+async function createArweaveSigner(): Promise<ArconnectSigner> {
+  if (cachedArweaveSigner) {
+    return cachedArweaveSigner;
   }
 
-  try {
-    // Get current permissions
-    const currentPermissions = await window.arweaveWallet.getPermissions();
-    console.log("📋 Current permissions:", currentPermissions);
+  if (!window.arweaveWallet) {
+    throw new Error("Wander wallet not available. Please connect Wander.");
+  }
 
-    // Find missing permissions
-    const missingPermissions = ARWEAVE_PERMISSIONS.filter(
-      (p) => !currentPermissions.includes(p)
+  // Ensure permissions
+  await ensureArweavePermissions();
+
+  // Create signer
+  const signer = new ArconnectSigner(window.arweaveWallet);
+  await signer.setPublicKey();
+
+  cachedArweaveSigner = signer;
+  return signer;
+}
+
+/**
+ * Create Ethereum signer from provider (MetaMask, WalletConnect, etc.)
+ * Uses ethers v5 Web3Provider
+ */
+async function createEthereumSigner(
+  walletProvider: unknown
+): Promise<InjectedEthereumSigner> {
+  if (cachedEthereumSigner) {
+    return cachedEthereumSigner;
+  }
+
+  // InjectedEthereumSigner expects a provider with getSigner() method
+  // We need to create a minimal wrapper that provides this
+  const providerWrapper = {
+    getSigner: () => {
+      // The provider from AppKit already has the signer methods we need
+      // We need to wrap it to match the expected interface
+      const provider = walletProvider as {
+        request: (args: {
+          method: string;
+          params?: unknown[];
+        }) => Promise<unknown>;
+      };
+
+      return {
+        signMessage: async (message: string | Uint8Array): Promise<string> => {
+          // Get the current account
+          const accounts = (await provider.request({
+            method: "eth_accounts",
+          })) as string[];
+          const account = accounts[0];
+
+          // Convert message to hex if it's bytes
+          const messageHex =
+            typeof message === "string"
+              ? message
+              : "0x" + Buffer.from(message).toString("hex");
+
+          // Sign using personal_sign
+          const signature = (await provider.request({
+            method: "personal_sign",
+            params: [messageHex, account],
+          })) as string;
+
+          return signature;
+        },
+        getAddress: async (): Promise<string> => {
+          const accounts = (await provider.request({
+            method: "eth_accounts",
+          })) as string[];
+          return accounts[0];
+        },
+      };
+    },
+  };
+
+  // Create arbundles signer
+  const signer = new InjectedEthereumSigner(providerWrapper);
+
+  // Initialize public key (triggers wallet popup to sign a message)
+  console.log(
+    "🔐 Initializing Ethereum signer (you may see a signature request)..."
+  );
+  await signer.setPublicKey();
+  console.log("✅ Ethereum signer initialized");
+
+  cachedEthereumSigner = signer;
+  return signer;
+}
+
+/**
+ * Create Solana signer from provider (Phantom, WalletConnect, etc.)
+ */
+async function createSolanaSigner(
+  walletProvider: unknown
+): Promise<InjectedSolanaSigner> {
+  if (cachedSolanaSigner) {
+    return cachedSolanaSigner;
+  }
+
+  // InjectedSolanaSigner expects a wallet adapter interface
+  const signer = new InjectedSolanaSigner(walletProvider);
+  console.log("✅ Solana signer initialized");
+
+  cachedSolanaSigner = signer;
+  return signer;
+}
+
+/**
+ * Ensure Arweave permissions are granted
+ */
+async function ensureArweavePermissions(): Promise<void> {
+  if (!window.arweaveWallet) {
+    throw new Error("Arweave wallet not available");
+  }
+
+  const currentPermissions = await window.arweaveWallet.getPermissions();
+  const missingPermissions = ARWEAVE_PERMISSIONS.filter(
+    (p) => !currentPermissions.includes(p)
+  );
+
+  if (missingPermissions.length > 0) {
+    console.log(
+      "⚠️ Requesting missing Arweave permissions:",
+      missingPermissions
     );
-
-    if (missingPermissions.length === 0) {
-      console.log("✅ All permissions already granted");
-      return true;
-    }
-
-    console.log("⚠️ Missing permissions:", missingPermissions);
-
-    // Request missing permissions
     await window.arweaveWallet.connect(
       missingPermissions as ArweavePermission[],
       {
@@ -65,62 +220,12 @@ export async function ensurePermissions(): Promise<boolean> {
         logo: "https://food-globe.vercel.app/icon-192x192.png",
       }
     );
-
-    console.log("✅ Additional permissions granted");
-    return true;
-  } catch (error) {
-    console.error("❌ Failed to get/request permissions:", error);
-    throw error;
   }
 }
 
-/**
- * Initialize or get the Turbo client
- * Only works with Arweave wallet (Wander)
- */
-export async function getTurboClient(): Promise<TurboAuthenticatedClient> {
-  if (turboClient) {
-    return turboClient;
-  }
-
-  if (!window.arweaveWallet) {
-    throw new Error("Arweave wallet not available. Please connect Wander.");
-  }
-
-  // Ensure we have all required permissions before creating client
-  await ensurePermissions();
-
-  // Create signer from the injected wallet
-  const signer = new ArconnectSigner(window.arweaveWallet);
-
-  // Initialize authenticated Turbo client
-  turboClient = TurboFactory.authenticated({ signer });
-
-  return turboClient;
-}
-
-/**
- * Reset the Turbo client (call on wallet disconnect)
- */
-export function resetTurboClient(): void {
-  turboClient = null;
-}
-
-/**
- * Check if user has sufficient balance for upload
- */
-export async function checkBalance(): Promise<{
-  hasBalance: boolean;
-  balanceInWinc: string;
-}> {
-  const turbo = await getTurboClient();
-  const balance = await turbo.getBalance();
-
-  return {
-    hasBalance: BigInt(balance.winc) > BigInt(0),
-    balanceInWinc: balance.winc,
-  };
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA ITEM CREATION & SIGNING
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Create standard tags for all Food Globe transactions
@@ -143,34 +248,102 @@ function createBaseTags(
 }
 
 /**
+ * Create and sign a data item
+ */
+async function createSignedDataItem(
+  signer: Signer,
+  data: object,
+  tags: { name: string; value: string }[]
+): Promise<DataItem> {
+  const jsonString = JSON.stringify(data);
+
+  // Create data item
+  const dataItem = createData(jsonString, signer, { tags });
+
+  // Sign it (triggers wallet popup)
+  console.log("✍️ Signing data item...");
+  await dataItem.sign(signer);
+  console.log("✅ Data item signed, ID:", dataItem.id);
+
+  return dataItem;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UPLOAD TO ARWEAVE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Upload a signed data item to Arweave via Turbo
+ */
+async function uploadDataItem(dataItem: DataItem): Promise<{ id: string }> {
+  console.log("📤 Uploading to Arweave...");
+
+  // Get raw bytes and convert to ArrayBuffer for fetch
+  const rawData = dataItem.getRaw();
+  // Create a new ArrayBuffer and copy the data
+  const arrayBuffer = new ArrayBuffer(rawData.length);
+  const view = new Uint8Array(arrayBuffer);
+  for (let i = 0; i < rawData.length; i++) {
+    view[i] = rawData[i];
+  }
+
+  const response = await fetch(TURBO_UPLOAD_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/octet-stream",
+    },
+    body: arrayBuffer,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  console.log("✅ Uploaded to Arweave:", result.id);
+
+  return { id: result.id };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUBLIC API - UPLOAD FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface UploadConfig {
+  walletType: WalletType;
+  walletAddress: string;
+  provider?: unknown; // Required for ETH/SOL
+}
+
+/**
  * Upload a recommendation to Arweave
  */
 export async function uploadRecommendation(
   placeId: string,
   data: RecommendationData,
-  author: string,
-  authorChain: WalletType = "arweave"
-): Promise<{ id: string; owner: string }> {
-  const turbo = await getTurboClient();
+  config: UploadConfig
+): Promise<{ id: string }> {
+  const signer = await createSigner({
+    walletType: config.walletType,
+    provider: config.provider,
+  });
 
-  const tags = createBaseTags(placeId, "recommendation", author, authorChain);
+  const tags = createBaseTags(
+    placeId,
+    "recommendation",
+    config.walletAddress,
+    config.walletType
+  );
 
-  // Add recommendation-specific tags for easier querying
+  // Add recommendation-specific tags
   tags.push({ name: "Category", value: data.category });
   if (data.dietaryTags.length > 0) {
     tags.push({ name: "Dietary-Tags", value: data.dietaryTags.join(",") });
   }
 
-  const jsonData = JSON.stringify(data);
-  const dataBuffer = new TextEncoder().encode(jsonData);
-
-  const result = await turbo.upload({
-    data: dataBuffer,
-    dataItemOpts: { tags },
-  });
-
-  console.log("✅ Recommendation uploaded:", result.id);
-  return { id: result.id, owner: result.owner };
+  const dataItem = await createSignedDataItem(signer, data, tags);
+  return uploadDataItem(dataItem);
 }
 
 /**
@@ -179,25 +352,24 @@ export async function uploadRecommendation(
 export async function uploadLikeAction(
   placeId: string,
   action: "like" | "unlike",
-  author: string,
-  authorChain: WalletType = "arweave"
-): Promise<{ id: string; owner: string }> {
-  const turbo = await getTurboClient();
-
-  const type: InteractionType = action === "like" ? "like" : "unlike";
-  const tags = createBaseTags(placeId, type, author, authorChain);
-
-  const likeData: LikeData = { action };
-  const jsonData = JSON.stringify(likeData);
-  const dataBuffer = new TextEncoder().encode(jsonData);
-
-  const result = await turbo.upload({
-    data: dataBuffer,
-    dataItemOpts: { tags },
+  config: UploadConfig
+): Promise<{ id: string }> {
+  const signer = await createSigner({
+    walletType: config.walletType,
+    provider: config.provider,
   });
 
-  console.log(`✅ ${action} uploaded:`, result.id);
-  return { id: result.id, owner: result.owner };
+  const type: InteractionType = action === "like" ? "like" : "unlike";
+  const tags = createBaseTags(
+    placeId,
+    type,
+    config.walletAddress,
+    config.walletType
+  );
+
+  const likeData: LikeData = { action };
+  const dataItem = await createSignedDataItem(signer, likeData, tags);
+  return uploadDataItem(dataItem);
 }
 
 /**
@@ -206,34 +378,45 @@ export async function uploadLikeAction(
 export async function uploadComment(
   placeId: string,
   text: string,
-  author: string,
-  authorChain: WalletType = "arweave"
-): Promise<{ id: string; owner: string }> {
-  const turbo = await getTurboClient();
+  config: UploadConfig
+): Promise<{ id: string }> {
+  const signer = await createSigner({
+    walletType: config.walletType,
+    provider: config.provider,
+  });
 
-  const tags = createBaseTags(placeId, "comment", author, authorChain);
+  const tags = createBaseTags(
+    placeId,
+    "comment",
+    config.walletAddress,
+    config.walletType
+  );
 
   const commentData: CommentData = {
     text,
     timestamp: new Date().toISOString(),
   };
-  const jsonData = JSON.stringify(commentData);
-  const dataBuffer = new TextEncoder().encode(jsonData);
 
-  const result = await turbo.upload({
-    data: dataBuffer,
-    dataItemOpts: { tags },
-  });
-
-  console.log("✅ Comment uploaded:", result.id);
-  return { id: result.id, owner: result.owner };
+  const dataItem = await createSignedDataItem(signer, commentData, tags);
+  return uploadDataItem(dataItem);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// LEGACY COMPATIBILITY - for existing Arweave-only code
+// ═══════════════════════════════════════════════════════════════════════════
+
 /**
- * Get the cost estimate for an upload (in Winston)
+ * @deprecated Use uploadRecommendation with config instead
  */
-export async function getUploadCost(dataSizeBytes: number): Promise<string> {
-  const turbo = await getTurboClient();
-  const [{ winc }] = await turbo.getUploadCosts({ bytes: [dataSizeBytes] });
-  return winc;
+export async function uploadRecommendationLegacy(
+  placeId: string,
+  data: RecommendationData,
+  author: string,
+  authorChain: WalletType = "arweave"
+): Promise<{ id: string; owner: string }> {
+  const result = await uploadRecommendation(placeId, data, {
+    walletType: authorChain,
+    walletAddress: author,
+  });
+  return { id: result.id, owner: author };
 }
