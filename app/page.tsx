@@ -112,6 +112,7 @@ export default function Home() {
             for (const rec of recs) {
               addFood(foodPlace, {
                 name: rec.author.slice(0, 8) + "...", // Shortened wallet address
+                walletAddress: rec.author, // Full wallet address for duplicate detection
                 caption: rec.data.caption || undefined,
                 category: rec.data.category as
                   | "traditional"

@@ -1,5 +1,6 @@
 export interface Recommender {
   name: string;
+  walletAddress: string; // Unique identifier for duplicate detection
   profilePicture?: string;
   caption?: string;
   category?: FoodCategory;

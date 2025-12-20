@@ -113,13 +113,13 @@ export default function PlaceDetailsOverlay({
   const [selectedDietary, setSelectedDietary] =
     useState<DietaryTag[]>(detectedDietary);
 
-  // Check if current user (by name) has already added this place
+  // Check if current user (by wallet address) has already added this place
   const hasUserAlreadyAdded = useMemo(() => {
-    if (!existingPlace || !userProfile?.username) return false;
+    if (!existingPlace || !walletAddress) return false;
     return existingPlace.recommenders.some(
-      (r) => r.name.toLowerCase() === userProfile.username.toLowerCase()
+      (r) => r.walletAddress.toLowerCase() === walletAddress.toLowerCase()
     );
-  }, [existingPlace, userProfile]);
+  }, [existingPlace, walletAddress]);
 
   // Auto-show form when profile is set (after profile modal closes)
   // MUST be before early return to follow Rules of Hooks
@@ -137,12 +137,13 @@ export default function PlaceDetailsOverlay({
   const priceLevel = place.price_level ? "$".repeat(place.price_level) : null;
 
   const handleSubmit = async () => {
-    if (!userProfile || hasUserAlreadyAdded) {
+    if (!userProfile || !walletAddress || hasUserAlreadyAdded) {
       return;
     }
 
     const recommender: Recommender = {
       name: userProfile.username,
+      walletAddress: walletAddress, // For duplicate detection
       profilePicture: userProfile.pfp || undefined,
       caption: recommenderCaption.trim() || undefined,
       category: selectedCategory || undefined,
