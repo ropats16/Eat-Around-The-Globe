@@ -38,6 +38,8 @@ export default function WalletButton() {
     isConnecting,
     openWalletModal,
     disconnectWallet,
+    userProfile,
+    isLoadingProfile,
   } = useFoodGlobeStore();
 
   const { disconnect: disconnectAppKit } = useDisconnect();
@@ -205,29 +207,75 @@ export default function WalletButton() {
           walletInfo?.lightBg || "bg-white"
         }`}
       >
-        {/* Wallet icon */}
-        <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
-          <Image
-            src={walletInfo?.icon || ""}
-            alt={walletInfo?.name || ""}
-            width={40}
-            height={40}
-            className="w-full h-full object-contain rounded-lg"
-          />
+        {/* Profile picture or wallet icon */}
+        {userProfile?.pfp ? (
+          <div className="relative w-10 h-10 rounded-full overflow-hidden shadow-md shadow-black/10">
+            <Image
+              src={userProfile.pfp}
+              alt={userProfile.username}
+              fill
+              className="object-cover"
+            />
+          </div>
+        ) : userProfile ? (
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-black/10">
+            {userProfile.username.slice(0, 2).toUpperCase()}
+          </div>
+        ) : (
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
+            <Image
+              src={walletInfo?.icon || ""}
+              alt={walletInfo?.name || ""}
+              width={40}
+              height={40}
+              className="w-full h-full object-contain rounded-lg"
+            />
+          </div>
+        )}
+
+        {/* Username or wallet name and address */}
+        <div className="flex-1 text-left min-w-0">
+          {isLoadingProfile ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-3 h-3 text-gray-400 animate-spin" />
+              <span className="text-xs text-gray-500 font-medium">
+                Loading profile...
+              </span>
+            </div>
+          ) : userProfile ? (
+            <>
+              <div className="text-sm font-bold text-gray-900 truncate">
+                {userProfile.username}
+              </div>
+              <div className="text-xs text-gray-500 font-medium font-mono">
+                {shortenAddress(walletAddress)}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-xs text-gray-500 font-medium leading-none mb-0.5">
+                {walletInfo?.name}
+              </div>
+              <div className="text-sm font-bold text-gray-900 font-mono">
+                {shortenAddress(walletAddress)}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Wallet name and address */}
-        <div className="flex-1 text-left">
-          <div className="text-xs text-gray-500 font-medium leading-none mb-0.5">
-            {walletInfo?.name}
-          </div>
-          <div className="text-sm font-bold text-gray-900 font-mono">
-            {shortenAddress(walletAddress)}
-          </div>
-        </div>
-
-        {/* Status indicator */}
+        {/* Wallet icon badge (when profile is shown) and status indicator */}
         <div className="flex items-center gap-2">
+          {userProfile && (
+            <div className="w-6 h-6 rounded-lg overflow-hidden shadow-sm shadow-black/10 bg-white p-0.5">
+              <Image
+                src={walletInfo?.icon || ""}
+                alt={walletInfo?.name || ""}
+                width={24}
+                height={24}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
           <ChevronDown
             className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
@@ -257,6 +305,23 @@ export default function WalletButton() {
               transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
               className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl shadow-black/15 border border-gray-100 overflow-hidden z-50"
             >
+              {/* Profile info (if available) */}
+              {userProfile && (
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-1">
+                    Profile
+                  </p>
+                  <p className="text-sm text-gray-900 font-semibold">
+                    {userProfile.username}
+                  </p>
+                  {userProfile.bio && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                      {userProfile.bio}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Address with copy */}
               <div className="px-4 py-3 border-b border-gray-100">
                 <div className="flex items-center justify-between">
