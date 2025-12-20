@@ -180,6 +180,10 @@ async function createEthereumSigner(
 
 /**
  * Create Solana signer from provider (Phantom, WalletConnect, etc.)
+ *
+ * Note: Reown AppKit's Solana provider doesn't support arbitrary message signing.
+ * We create a custom wrapper that uses the Solana wallet's signMessage method
+ * through the request interface.
  */
 async function createSolanaSigner(
   walletProvider: unknown
@@ -188,12 +192,206 @@ async function createSolanaSigner(
     return cachedSolanaSigner;
   }
 
-  // InjectedSolanaSigner expects a wallet adapter interface
-  const signer = new InjectedSolanaSigner(walletProvider);
-  console.log("✅ Solana signer initialized");
+  console.log("🔍 [SOLANA SIGNER] Analyzing provider:", {
+    type: typeof walletProvider,
+    keys: walletProvider ? Object.keys(walletProvider as object) : [],
+    isObject: walletProvider !== null && typeof walletProvider === "object",
+  });
 
-  cachedSolanaSigner = signer;
-  return signer;
+  const originalProvider = walletProvider as {
+    publicKey?: unknown;
+    signMessage?: (message: Uint8Array) => Promise<{ signature: Uint8Array }>;
+    signTransaction?: (transaction: unknown) => Promise<unknown>;
+    request?: (args: { method: string; params?: unknown }) => Promise<unknown>;
+    features?: unknown;
+    chains?: unknown;
+  };
+
+  // Check if there's a nested wallet object (Reown wraps the actual wallet)
+  const providerWithWallet = originalProvider as {
+    wallet?: unknown;
+    provider?: unknown;
+  };
+
+  console.log("🔍 [SOLANA SIGNER] Provider info:", {
+    hasPublicKey: !!originalProvider.publicKey,
+    hasSignMessage: typeof originalProvider.signMessage === "function",
+    hasSignTransaction: typeof originalProvider.signTransaction === "function",
+    hasRequest: typeof originalProvider.request === "function",
+    publicKeyType: typeof originalProvider.publicKey,
+    hasWallet: !!providerWithWallet.wallet,
+    hasProvider: !!providerWithWallet.provider,
+    hasFeatures: !!originalProvider.features,
+    hasChains: !!originalProvider.chains,
+  });
+
+  // Log wallet features if available
+  if (originalProvider.features) {
+    const features = originalProvider.features as Record<string, unknown>;
+    console.log("🔍 [SOLANA SIGNER] Wallet features:", {
+      type: typeof features,
+      keys: Object.keys(features),
+      features: features,
+    });
+  }
+
+  // If there's a nested wallet or provider, log its structure
+  if (providerWithWallet.wallet) {
+    const wallet = providerWithWallet.wallet as Record<string, unknown>;
+    console.log("🔍 [SOLANA SIGNER] Nested wallet found:", {
+      type: typeof wallet,
+      keys: Object.keys(wallet),
+      hasSignMessage: typeof wallet.signMessage === "function",
+      hasPublicKey: !!wallet.publicKey,
+    });
+  }
+
+  if (providerWithWallet.provider) {
+    const nestedProvider = providerWithWallet.provider as Record<string, unknown>;
+    console.log("🔍 [SOLANA SIGNER] Nested provider found:", {
+      type: typeof nestedProvider,
+      keys: Object.keys(nestedProvider),
+      hasSignMessage: typeof nestedProvider.signMessage === "function",
+      hasPublicKey: !!nestedProvider.publicKey,
+    });
+  }
+
+  // Get the public key - it should be available on the provider
+  if (!originalProvider.publicKey) {
+    throw new Error("Provider does not have a publicKey");
+  }
+
+  // Create a wrapper that implements the interface InjectedSolanaSigner expects
+  const wrappedProvider = {
+    publicKey: {
+      toBuffer: () => {
+        // Convert the public key to buffer format that arbundles expects
+        const pk = originalProvider.publicKey as { toBytes?: () => Uint8Array };
+        if (pk.toBytes) {
+          console.log("🔑 [SOLANA SIGNER] Using publicKey.toBytes()");
+          return Buffer.from(pk.toBytes());
+        }
+        // Fallback: try to convert the public key directly
+        console.log(
+          "🔑 [SOLANA SIGNER] No toBytes() method, trying direct conversion"
+        );
+        return Buffer.from(pk as Uint8Array);
+      },
+    },
+    signMessage: async (message: Uint8Array) => {
+      console.log("✍️ [SOLANA SIGNER] signMessage called", {
+        messageLength: message.length,
+        messagePreview: Buffer.from(message.slice(0, 32)).toString("hex"),
+      });
+
+      // Try using request method with solana_signMessage first
+      // This is the recommended way for WalletConnect/Reown
+      if (originalProvider.request) {
+        try {
+          console.log("🔐 [SOLANA SIGNER] Attempting solana_signMessage via request()...");
+          const result = (await originalProvider.request({
+            method: "solana_signMessage",
+            params: {
+              message: Buffer.from(message).toString("base64"),
+            },
+          })) as { signature: string };
+
+          console.log("✅ [SOLANA SIGNER] solana_signMessage succeeded");
+          // Result should be base64 encoded signature, convert to Uint8Array
+          const signature = Buffer.from(result.signature, "base64");
+          console.log("🔑 [SOLANA SIGNER] Signature length:", signature.length);
+          return signature;
+        } catch (requestError) {
+          console.error(
+            "❌ [SOLANA SIGNER] solana_signMessage via request() failed:",
+            requestError
+          );
+
+          // Fall back to direct signMessage if request fails
+          if (originalProvider.signMessage) {
+            console.log("🔄 [SOLANA SIGNER] Falling back to provider.signMessage()...");
+            try {
+              const result = await originalProvider.signMessage(message);
+              console.log("✅ [SOLANA SIGNER] provider.signMessage() succeeded");
+              return result.signature;
+            } catch (signMessageError) {
+              console.error(
+                "❌ [SOLANA SIGNER] provider.signMessage() also failed:",
+                signMessageError
+              );
+              throw signMessageError;
+            }
+          }
+
+          throw requestError;
+        }
+      }
+
+      // If no request method, try signMessage directly
+      if (originalProvider.signMessage) {
+        console.log("🔐 [SOLANA SIGNER] Attempting provider.signMessage()...");
+        const result = await originalProvider.signMessage(message);
+        console.log("✅ [SOLANA SIGNER] signMessage returned, processing...");
+
+        // The result should be { signature: Uint8Array } according to the interface
+        // But let's handle various possible formats defensively
+
+        // Case 1: result has a signature property
+        if (result && typeof result === "object" && "signature" in result) {
+          const sig = (result as { signature: unknown }).signature;
+          console.log("🔍 [SOLANA SIGNER] Has signature property, type:", typeof sig, "isUint8Array:", sig instanceof Uint8Array);
+
+          // If it's already a Uint8Array, return it
+          if (sig instanceof Uint8Array) {
+            console.log("✅ [SOLANA SIGNER] Signature is Uint8Array, length:", sig.length);
+            return sig;
+          }
+
+          // If it's a Buffer (Node.js), convert to Uint8Array
+          if (Buffer.isBuffer(sig)) {
+            console.log("🔄 [SOLANA SIGNER] Signature is Buffer, converting...");
+            return new Uint8Array(sig);
+          }
+
+          // If it's an array or array-like object, convert it
+          if (typeof sig === "object" && sig !== null && "length" in sig) {
+            console.log("🔄 [SOLANA SIGNER] Signature is array-like, converting...");
+            return Uint8Array.from(sig as ArrayLike<number>);
+          }
+        }
+
+        // Case 2: result IS the signature directly (Uint8Array)
+        if (result instanceof Uint8Array) {
+          console.log("✅ [SOLANA SIGNER] Result IS Uint8Array, length:", result.length);
+          return result;
+        }
+
+        // Case 3: result is a Buffer
+        if (Buffer.isBuffer(result)) {
+          console.log("🔄 [SOLANA SIGNER] Result is Buffer, converting...");
+          return new Uint8Array(result);
+        }
+
+        console.error("❌ [SOLANA SIGNER] Unexpected signature format! Type:", typeof result);
+        console.error("❌ [SOLANA SIGNER] Result:", result);
+        throw new Error("Signature is not in expected format (Uint8Array)");
+      }
+
+      throw new Error("Provider does not support message signing");
+    },
+  };
+
+  console.log("🔐 [SOLANA SIGNER] Creating InjectedSolanaSigner with wrapped provider...");
+  try {
+    const signer = new InjectedSolanaSigner(wrappedProvider);
+    console.log("✅ [SOLANA SIGNER] InjectedSolanaSigner created successfully");
+
+    cachedSolanaSigner = signer;
+    return signer;
+  } catch (error) {
+    console.error("❌ [SOLANA SIGNER] Failed to create signer:", error);
+    throw error;
+  }
 }
 
 /**
