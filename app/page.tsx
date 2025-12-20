@@ -18,6 +18,7 @@ import { useFoodGlobeStore } from "@/lib/store";
 import WalletButton from "@/components/WalletButton";
 import WalletModal from "@/components/WalletModal";
 import ProfileSetupModal from "@/components/ProfileSetupModal";
+import HamburgerMenu from "@/components/HamburgerMenu";
 import { fetchUserProfile } from "@/lib/arweave";
 
 export default function Home() {
@@ -186,6 +187,41 @@ export default function Home() {
     loadProfile();
   }, [walletAddress, setUserProfile, setIsLoadingProfile]);
 
+  // Mobile diagnostic logging
+  useEffect(() => {
+    const logViewportInfo = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const dvh = window.innerHeight; // dvh should match innerHeight on mobile
+      const isMobile = width < 768;
+      const isTablet = width >= 768 && width < 1024;
+      const isDesktop = width >= 1024;
+
+      // Calculate element positions and heights for debugging
+      const sidebarMaxHeight = isMobile 
+        ? `calc(100dvh - 14rem)` 
+        : `calc(100vh - 3rem)`;
+      const searchBarTop = isMobile ? "4.5rem" : "6.5rem";
+      const activityFeedBottom = isMobile ? "1rem" : "1.5rem";
+
+      console.log("📱 VIEWPORT DIAGNOSTIC:", {
+        width,
+        height,
+        dvh,
+        deviceType: isMobile ? "mobile" : isTablet ? "tablet" : "desktop",
+        breakpoint: isMobile ? "< 768px" : isTablet ? "768-1024px" : ">= 1024px",
+        sidebarMaxHeight,
+        searchBarTop,
+        activityFeedBottom,
+        timestamp: new Date().toISOString(),
+      });
+    };
+
+    logViewportInfo();
+    window.addEventListener("resize", logViewportInfo);
+    return () => window.removeEventListener("resize", logViewportInfo);
+  }, []);
+
   return (
     <>
       <AnimatePresence mode="wait">
@@ -193,7 +229,7 @@ export default function Home() {
       </AnimatePresence>
 
       {!isLoading && (
-        <div className="relative w-full h-screen overflow-hidden bg-[#0a0a0a]">
+        <div className="relative w-full h-screen h-dvh overflow-hidden bg-[#0a0a0a]">
           {/* Main Globe - Full Screen Background */}
           <div className="absolute inset-0">
             <Globe />
@@ -203,12 +239,14 @@ export default function Home() {
           <Sidebar />
           <ActivityFeed />
 
-          {/* Wallet Button - above SearchBar, same width */}
-          <div className="absolute top-6 right-12 w-96 z-20 pointer-events-auto">
+          {/* Top Row - Hamburger, SearchBar, WalletButton horizontally on mobile */}
+          <div className="absolute top-4 left-4 right-4 md:top-6 md:left-auto md:right-12 md:w-96 z-40 pointer-events-auto flex items-center gap-2">
+            <HamburgerMenu />
+            <div className="flex-1 md:flex-none md:absolute md:top-[4.5rem] md:right-0 md:w-full">
+              <SearchBar />
+            </div>
             <WalletButton />
           </div>
-
-          <SearchBar />
 
           <DetailPanel />
           <WalletModal />

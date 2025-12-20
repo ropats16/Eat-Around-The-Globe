@@ -38,6 +38,9 @@ interface FoodGlobeStore {
   autoRotate: boolean;
   globeCenter: { lat: number; lng: number } | null;
 
+  // UI state
+  isSidebarOpen: boolean;
+
   // Actions
   setFoods: (foods: FoodPlace[]) => void;
   addFood: (
@@ -53,6 +56,8 @@ interface FoodGlobeStore {
   setIsAddingPlace: (adding: boolean) => void;
   toggleAutoRotate: () => void;
   centerGlobe: (lat: number, lng: number) => void;
+  toggleSidebar: () => void;
+  setSidebarOpen: (open: boolean) => void;
   getFilteredFoods: () => FoodPlace[];
   setPreviewPlace: (
     place: { lat: number; lng: number; name: string } | null
@@ -103,6 +108,7 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
   isAddingPlace: false,
   autoRotate: true,
   globeCenter: null,
+  isSidebarOpen: false, // Closed by default on mobile
 
   // Wallet state
   walletType: null,
@@ -196,6 +202,11 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
     set((state) => ({
       autoRotate: !state.autoRotate,
     })),
+
+  toggleSidebar: () =>
+    set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+
+  setSidebarOpen: (open) => set({ isSidebarOpen: open }),
 
   centerGlobe: (lat, lng) =>
     set({

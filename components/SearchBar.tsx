@@ -147,10 +147,10 @@ export default function SearchBar() {
   return (
     <div
       ref={searchRef}
-      className="absolute top-26 right-12 w-96 pointer-events-auto"
+      className="w-full md:absolute md:top-26 md:right-12 md:w-96 pointer-events-auto z-40 h-11 md:h-12"
     >
       {/* Main Search Input - Shadcn Input Group */}
-      <InputGroup className="h-12 rounded-lg bg-white shadow-[0_1px_6px_rgba(32,33,36,0.28)] hover:shadow-[0_2px_8px_rgba(32,33,36,0.28)] transition-shadow duration-200">
+      <InputGroup className="h-11 md:h-12 rounded-lg bg-white shadow-[0_1px_6px_rgba(32,33,36,0.28)] hover:shadow-[0_2px_8px_rgba(32,33,36,0.28)] transition-shadow duration-200">
         <InputGroupAddon>
           <SearchIcon />
         </InputGroupAddon>
@@ -161,7 +161,7 @@ export default function SearchBar() {
           onFocus={() => predictions.length > 0 && setShowSuggestions(true)}
           placeholder="Search for a food place anywhere..."
           disabled={isAdding}
-          className="text-base placeholder:text-gray-500"
+          className="text-sm md:text-base placeholder:text-gray-500"
         />
         {isSearching && (
           <InputGroupAddon align="inline-end">
@@ -183,7 +183,7 @@ export default function SearchBar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.15 }}
-            className="mt-2 bg-white rounded-3xl shadow-[0_1px_6px_rgba(32,33,36,0.28)] overflow-hidden max-h-[60vh] sm:max-h-96 overflow-y-auto"
+            className="mt-2 bg-white rounded-3xl shadow-[0_1px_6px_rgba(32,33,36,0.28)] overflow-hidden max-h-[calc(100dvh-12rem)] sm:max-h-96 overflow-y-auto"
           >
             <div className="py-2">
               {predictions.map((prediction) => (

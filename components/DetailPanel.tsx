@@ -52,6 +52,7 @@ export default function DetailPanel() {
     walletType,
     walletProvider,
     openWalletModal,
+    userProfile,
   } = useFoodGlobeStore();
 
   const [isLiked, setIsLiked] = useState(false);
@@ -122,6 +123,18 @@ export default function DetailPanel() {
           walletType,
           walletAddress,
           provider: walletProvider, // Pass provider for ETH/SOL
+          placeInfo: {
+            name: selectedFood.name,
+            country: selectedFood.country,
+            countryCode: selectedFood.countryCode,
+            city: selectedFood.city,
+            address: selectedFood.address,
+          },
+          profileInfo: userProfile
+            ? {
+                username: userProfile.username,
+              }
+            : undefined,
         }
       );
       console.log(
@@ -172,14 +185,14 @@ export default function DetailPanel() {
           key={`detail-panel-${
             selectedFood.id || selectedFood.placeId || "default"
           }`}
-          className="fixed top-26 right-12 w-96 z-50 pointer-events-auto"
+          className="fixed top-[9.5rem] md:top-26 right-4 md:right-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-11rem)] md:max-h-[calc(100vh-7rem)] z-50 pointer-events-auto"
         >
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-h-[calc(100vh-7rem)] flex flex-col"
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-h-full flex flex-col"
           >
             {/* Close Button */}
             <button
@@ -220,10 +233,10 @@ export default function DetailPanel() {
               )}
 
               {/* Content */}
-              <div className="p-6 space-y-5">
+              <div className="p-4 md:p-6 space-y-4 md:space-y-5">
                 {/* Title & Location */}
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 md:mb-3">
                     {selectedFood.name}
                   </h2>
                   <div className="flex items-center gap-2 text-gray-600">
@@ -469,11 +482,11 @@ export default function DetailPanel() {
                 <div className="border-t border-gray-200"></div>
 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex gap-2 md:gap-3">
                   <button
                     onClick={handleLike}
                     disabled={isLikeLoading}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-all font-medium text-sm border ${
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 md:py-3 rounded-lg transition-all font-medium text-xs md:text-sm border ${
                       isLiked
                         ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
                         : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50"
@@ -493,7 +506,7 @@ export default function DetailPanel() {
                   </button>
                   <button
                     onClick={handleShare}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white hover:bg-gray-50 rounded-lg transition-colors text-gray-700 font-medium text-sm border border-gray-200"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 md:py-3 bg-white hover:bg-gray-50 rounded-lg transition-colors text-gray-700 font-medium text-xs md:text-sm border border-gray-200"
                   >
                     <Share2 className="w-4 h-4" />
                     <span>Share</span>

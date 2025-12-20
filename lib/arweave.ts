@@ -17,6 +17,7 @@ import type {
   WalletType,
   ProfileData,
 } from "./wallet-types";
+import type { FoodPlace } from "./types";
 
 // App identifier for all our transactions
 const APP_NAME = "Eat-Around-The-Globe";
@@ -598,6 +599,11 @@ interface UploadConfig {
   walletType: WalletType;
   walletAddress: string;
   provider?: unknown; // Required for ETH/SOL
+  placeInfo?: Pick<
+    FoodPlace,
+    "name" | "country" | "countryCode" | "city" | "address"
+  >; // Optional place information for tags (subset of FoodPlace)
+  profileInfo?: Pick<ProfileData, "username">; // Optional profile information for tags (subset of ProfileData)
 }
 
 /**
@@ -631,6 +637,27 @@ export async function uploadRecommendation(
   tags.push({ name: "Category", value: data.category });
   if (data.dietaryTags.length > 0) {
     tags.push({ name: "Dietary-Tags", value: data.dietaryTags.join(",") });
+  }
+
+  // Add caption tag if available
+  if (data.caption && data.caption.trim()) {
+    tags.push({ name: "Caption", value: data.caption.trim() });
+  }
+
+  // Add recommender name from profile if available
+  if (config.profileInfo?.username) {
+    tags.push({ name: "Recommender-Name", value: config.profileInfo.username });
+  }
+
+  // Add place information tags (stable data that won't change)
+  if (config.placeInfo) {
+    tags.push({ name: "Place-Name", value: config.placeInfo.name });
+    tags.push({ name: "Country", value: config.placeInfo.country });
+    tags.push({ name: "Country-Code", value: config.placeInfo.countryCode });
+    tags.push({ name: "City", value: config.placeInfo.city });
+    if (config.placeInfo.address) {
+      tags.push({ name: "Address", value: config.placeInfo.address });
+    }
   }
 
   console.log("🏷️ [UPLOAD RECOMMENDATION] Tags:", tags);
@@ -668,6 +695,19 @@ export async function uploadLikeAction(
     config.walletType
   );
 
+  // Add user name from profile if available
+  if (config.profileInfo?.username) {
+    tags.push({ name: "User-Name", value: config.profileInfo.username });
+  }
+
+  // Add place information tags (stable data that won't change)
+  if (config.placeInfo) {
+    tags.push({ name: "Place-Name", value: config.placeInfo.name });
+    tags.push({ name: "Country", value: config.placeInfo.country });
+    tags.push({ name: "Country-Code", value: config.placeInfo.countryCode });
+    tags.push({ name: "City", value: config.placeInfo.city });
+  }
+
   const likeData: LikeData = { action };
   const dataItem = await createSignedDataItem(signer, likeData, tags);
   return uploadDataItem(dataItem);
@@ -692,6 +732,26 @@ export async function uploadComment(
     config.walletAddress,
     config.walletType
   );
+
+  // Add user name from profile if available
+  if (config.profileInfo?.username) {
+    tags.push({ name: "User-Name", value: config.profileInfo.username });
+  }
+
+  // Add place information tags (stable data that won't change)
+  if (config.placeInfo) {
+    tags.push({ name: "Place-Name", value: config.placeInfo.name });
+    tags.push({ name: "Country", value: config.placeInfo.country });
+    tags.push({ name: "Country-Code", value: config.placeInfo.countryCode });
+    tags.push({ name: "City", value: config.placeInfo.city });
+  }
+
+  // Add comment metadata for querying
+  const wordCount = text
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0).length;
+  tags.push({ name: "Comment-Word-Count", value: wordCount.toString() });
 
   const commentData: CommentData = {
     text,
@@ -723,6 +783,11 @@ export async function uploadProfile(
     { name: "Version", value: new Date().toISOString() }, // Timestamp for versioning
     { name: "Content-Type", value: "application/json" },
   ];
+
+  // Add username tag for easier querying by username
+  if (data.username) {
+    tags.push({ name: "Username", value: data.username });
+  }
 
   const dataItem = await createSignedDataItem(signer, data, tags);
   return uploadDataItem(dataItem);

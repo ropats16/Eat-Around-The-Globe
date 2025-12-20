@@ -157,6 +157,23 @@ export default function PlaceDetailsOverlay({
         console.log(
           `📤 Uploading recommendation to Arweave via ${walletType}...`
         );
+
+        // Extract place information for tags
+        const countryComponent = place.address_components?.find((comp) =>
+          comp.types.includes("country")
+        );
+        const country = countryComponent?.long_name || "Unknown";
+        const countryCode = countryComponent?.short_name || "XX";
+
+        const cityComponent =
+          place.address_components?.find((comp) =>
+            comp.types.includes("locality")
+          ) ||
+          place.address_components?.find((comp) =>
+            comp.types.includes("administrative_area_level_1")
+          );
+        const city = cityComponent?.long_name || "Unknown";
+
         const result = await uploadRecommendation(
           place.place_id,
           {
@@ -168,6 +185,18 @@ export default function PlaceDetailsOverlay({
             walletType,
             walletAddress,
             provider: walletProvider, // Pass provider for ETH/SOL
+            placeInfo: {
+              name: place.name || "Unnamed Place",
+              country,
+              countryCode,
+              city,
+              address: place.formatted_address,
+            },
+            profileInfo: userProfile
+              ? {
+                  username: userProfile.username,
+                }
+              : undefined,
           }
         );
         console.log("✅ Recommendation saved to Arweave:", result.id);
@@ -388,7 +417,6 @@ export default function PlaceDetailsOverlay({
                 )}
 
                 <div className="space-y-4">
-
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                       <MessageSquare className="w-4 h-4" />

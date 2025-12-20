@@ -82,10 +82,10 @@ export default function ActivityFeed() {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-      className="absolute bottom-6 left-12 w-96 pointer-events-auto"
+      className="absolute bottom-4 left-4 md:bottom-6 md:left-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-12rem)] md:max-h-none pointer-events-auto z-20"
     >
-      <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl p-4 border border-gray-700/30">
-        <div className="h-48 overflow-y-auto space-y-2 custom-scrollbar">
+      <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl p-3 md:p-4 border border-gray-700/30">
+        <div className="h-40 md:h-48 max-h-[calc(100dvh-14rem)] md:max-h-48 overflow-y-auto space-y-2 custom-scrollbar">
           <AnimatePresence mode="popLayout">
             {visibleFoods.map((food, index) => (
               <motion.button

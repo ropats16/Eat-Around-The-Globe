@@ -35,11 +35,23 @@ export interface ArweaveInteraction {
   authorChain: WalletType;
   timestamp: string;
   blockTimestamp?: number;
+  // New tag fields (optional for backward compatibility)
+  placeName?: string;
+  country?: string;
+  countryCode?: string;
+  city?: string;
+  address?: string;
+  userName?: string; // User-Name or Recommender-Name tag
 }
 
 export interface ParsedRecommendation extends ArweaveInteraction {
   type: "recommendation";
   data: RecommendationData;
+  // Recommendation-specific tags
+  category?: string;
+  dietaryTags?: string[];
+  caption?: string;
+  recommenderName?: string; // Recommender-Name tag
 }
 
 export interface ParsedLike extends ArweaveInteraction {
@@ -50,6 +62,8 @@ export interface ParsedLike extends ArweaveInteraction {
 export interface ParsedComment extends ArweaveInteraction {
   type: "comment";
   data: CommentData;
+  // Comment-specific tags
+  commentWordCount?: number;
 }
 
 /**
@@ -144,6 +158,130 @@ const QUERY_ALL_RECOMMENDATIONS = `
 `;
 
 /**
+ * GraphQL query to fetch recommendations by country code
+ */
+const QUERY_BY_COUNTRY_CODE = `
+  query GetRecommendationsByCountry($appName: String!, $countryCode: String!, $first: Int, $after: String) {
+    transactions(
+      tags: [
+        { name: "App-Name", values: [$appName] }
+        { name: "Type", values: ["recommendation"] }
+        { name: "Country-Code", values: [$countryCode] }
+      ]
+      first: $first
+      after: $after
+      sort: HEIGHT_DESC
+    ) {
+      pageInfo {
+        hasNextPage
+      }
+      edges {
+        cursor
+        node {
+          id
+          owner { address }
+          tags { name value }
+          block { timestamp }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * GraphQL query to fetch recommendations by city
+ */
+const QUERY_BY_CITY = `
+  query GetRecommendationsByCity($appName: String!, $city: String!, $first: Int, $after: String) {
+    transactions(
+      tags: [
+        { name: "App-Name", values: [$appName] }
+        { name: "Type", values: ["recommendation"] }
+        { name: "City", values: [$city] }
+      ]
+      first: $first
+      after: $after
+      sort: HEIGHT_DESC
+    ) {
+      pageInfo {
+        hasNextPage
+      }
+      edges {
+        cursor
+        node {
+          id
+          owner { address }
+          tags { name value }
+          block { timestamp }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * GraphQL query to fetch recommendations by recommender name
+ */
+const QUERY_BY_RECOMMENDER_NAME = `
+  query GetRecommendationsByRecommender($appName: String!, $recommenderName: String!, $first: Int, $after: String) {
+    transactions(
+      tags: [
+        { name: "App-Name", values: [$appName] }
+        { name: "Type", values: ["recommendation"] }
+        { name: "Recommender-Name", values: [$recommenderName] }
+      ]
+      first: $first
+      after: $after
+      sort: HEIGHT_DESC
+    ) {
+      pageInfo {
+        hasNextPage
+      }
+      edges {
+        cursor
+        node {
+          id
+          owner { address }
+          tags { name value }
+          block { timestamp }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * GraphQL query to fetch recommendations by category
+ */
+const QUERY_BY_CATEGORY = `
+  query GetRecommendationsByCategory($appName: String!, $category: String!, $first: Int, $after: String) {
+    transactions(
+      tags: [
+        { name: "App-Name", values: [$appName] }
+        { name: "Type", values: ["recommendation"] }
+        { name: "Category", values: [$category] }
+      ]
+      first: $first
+      after: $after
+      sort: HEIGHT_DESC
+    ) {
+      pageInfo {
+        hasNextPage
+      }
+      edges {
+        cursor
+        node {
+          id
+          owner { address }
+          tags { name value }
+          block { timestamp }
+        }
+      }
+    }
+  }
+`;
+
+/**
  * Execute a GraphQL query against Arweave
  */
 async function executeQuery<T>(
@@ -195,6 +333,46 @@ function parseTags(
 }
 
 /**
+ * Parse a recommendation transaction into ParsedRecommendation
+ */
+async function parseRecommendationTransaction(
+  node: TransactionEdge["node"]
+): Promise<ParsedRecommendation | null> {
+  const tagMap = parseTags(node.tags);
+
+  try {
+    const txData = await fetchTransactionData<RecommendationData>(node.id);
+
+    return {
+      id: node.id,
+      type: "recommendation",
+      placeId: tagMap["Place-ID"],
+      author: tagMap["Author"],
+      authorChain: tagMap["Author-Chain"] as WalletType,
+      timestamp: tagMap["Timestamp"],
+      blockTimestamp: node.block?.timestamp,
+      data: txData,
+      // Extract new tag fields
+      placeName: tagMap["Place-Name"],
+      country: tagMap["Country"],
+      countryCode: tagMap["Country-Code"],
+      city: tagMap["City"],
+      address: tagMap["Address"],
+      userName: tagMap["Recommender-Name"],
+      category: tagMap["Category"],
+      dietaryTags: tagMap["Dietary-Tags"]
+        ? tagMap["Dietary-Tags"].split(",")
+        : undefined,
+      caption: tagMap["Caption"],
+      recommenderName: tagMap["Recommender-Name"],
+    };
+  } catch (err) {
+    console.warn(`Failed to fetch data for recommendation tx ${node.id}:`, err);
+    return null;
+  }
+}
+
+/**
  * Get all interactions for a place
  */
 export async function getPlaceInteractions(
@@ -230,16 +408,21 @@ export async function getPlaceInteractions(
       authorChain: tagMap["Author-Chain"] as WalletType,
       timestamp: tagMap["Timestamp"],
       blockTimestamp: node.block?.timestamp,
+      // Extract new tag fields
+      placeName: tagMap["Place-Name"],
+      country: tagMap["Country"],
+      countryCode: tagMap["Country-Code"],
+      city: tagMap["City"],
+      address: tagMap["Address"],
+      userName: tagMap["User-Name"] || tagMap["Recommender-Name"],
     };
 
     try {
       if (type === "recommendation") {
-        const txData = await fetchTransactionData<RecommendationData>(node.id);
-        recommendations.push({
-          ...baseInteraction,
-          type: "recommendation",
-          data: txData,
-        });
+        const parsed = await parseRecommendationTransaction(node);
+        if (parsed) {
+          recommendations.push(parsed);
+        }
       } else if (type === "like" || type === "unlike") {
         const txData = await fetchTransactionData<LikeData>(node.id);
         likes.push({
@@ -249,10 +432,12 @@ export async function getPlaceInteractions(
         });
       } else if (type === "comment") {
         const txData = await fetchTransactionData<CommentData>(node.id);
+        const wordCount = tagMap["Comment-Word-Count"];
         comments.push({
           ...baseInteraction,
           type: "comment",
           data: txData,
+          commentWordCount: wordCount ? parseInt(wordCount, 10) : undefined,
         });
       }
     } catch (err) {
@@ -419,32 +604,122 @@ export async function getAllRecommendations(
   const recommendations: ParsedRecommendation[] = [];
 
   for (const edge of data.transactions.edges) {
-    const { node } = edge;
-    const tagMap = parseTags(node.tags);
-
-    try {
-      const txData = await fetchTransactionData<RecommendationData>(node.id);
-
-      recommendations.push({
-        id: node.id,
-        type: "recommendation",
-        placeId: tagMap["Place-ID"],
-        author: tagMap["Author"],
-        authorChain: tagMap["Author-Chain"] as WalletType,
-        timestamp: tagMap["Timestamp"],
-        blockTimestamp: node.block?.timestamp,
-        data: txData,
-      });
-    } catch (err) {
-      console.warn(
-        `Failed to fetch data for recommendation tx ${node.id}:`,
-        err
-      );
+    const parsed = await parseRecommendationTransaction(edge.node);
+    if (parsed) {
+      recommendations.push(parsed);
     }
   }
 
   console.log(
     `✅ Successfully parsed ${recommendations.length} recommendations`
   );
+  return recommendations;
+}
+
+/**
+ * Get recommendations by country code
+ */
+export async function getRecommendationsByCountry(
+  countryCode: string,
+  limit = 100
+): Promise<ParsedRecommendation[]> {
+  const data = await executeQuery<{
+    transactions: { edges: TransactionEdge[] };
+  }>(QUERY_BY_COUNTRY_CODE, {
+    appName: APP_NAME,
+    countryCode,
+    first: limit,
+  });
+
+  const recommendations: ParsedRecommendation[] = [];
+
+  for (const edge of data.transactions.edges) {
+    const parsed = await parseRecommendationTransaction(edge.node);
+    if (parsed) {
+      recommendations.push(parsed);
+    }
+  }
+
+  return recommendations;
+}
+
+/**
+ * Get recommendations by city
+ */
+export async function getRecommendationsByCity(
+  city: string,
+  limit = 100
+): Promise<ParsedRecommendation[]> {
+  const data = await executeQuery<{
+    transactions: { edges: TransactionEdge[] };
+  }>(QUERY_BY_CITY, {
+    appName: APP_NAME,
+    city,
+    first: limit,
+  });
+
+  const recommendations: ParsedRecommendation[] = [];
+
+  for (const edge of data.transactions.edges) {
+    const parsed = await parseRecommendationTransaction(edge.node);
+    if (parsed) {
+      recommendations.push(parsed);
+    }
+  }
+
+  return recommendations;
+}
+
+/**
+ * Get recommendations by recommender username
+ */
+export async function getRecommendationsByRecommender(
+  recommenderName: string,
+  limit = 100
+): Promise<ParsedRecommendation[]> {
+  const data = await executeQuery<{
+    transactions: { edges: TransactionEdge[] };
+  }>(QUERY_BY_RECOMMENDER_NAME, {
+    appName: APP_NAME,
+    recommenderName,
+    first: limit,
+  });
+
+  const recommendations: ParsedRecommendation[] = [];
+
+  for (const edge of data.transactions.edges) {
+    const parsed = await parseRecommendationTransaction(edge.node);
+    if (parsed) {
+      recommendations.push(parsed);
+    }
+  }
+
+  return recommendations;
+}
+
+/**
+ * Get recommendations by category
+ */
+export async function getRecommendationsByCategory(
+  category: string,
+  limit = 100
+): Promise<ParsedRecommendation[]> {
+  const data = await executeQuery<{
+    transactions: { edges: TransactionEdge[] };
+  }>(QUERY_BY_CATEGORY, {
+    appName: APP_NAME,
+    category,
+    first: limit,
+  });
+
+  const recommendations: ParsedRecommendation[] = [];
+
+  for (const edge of data.transactions.edges) {
+    const parsed = await parseRecommendationTransaction(edge.node);
+    if (parsed) {
+      recommendations.push(parsed);
+    }
+  }
+
   return recommendations;
 }
