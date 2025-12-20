@@ -15,6 +15,8 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   // Empty turbopack config to acknowledge we're using it
   turbopack: {},
+  // Mark packages as external to prevent bundling issues with test files
+  serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
   webpack: (config) => {
     config.externals = [...(config.externals || []), { canvas: "canvas" }];
     return config;
