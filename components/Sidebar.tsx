@@ -189,7 +189,7 @@ export default function Sidebar() {
           opacity: isMobile ? (isSidebarOpen ? 1 : 0) : 1,
         }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="absolute top-[5.5rem] md:top-6 left-4 md:left-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-8rem)] md:max-h-[calc(100vh-3rem)] overflow-y-auto custom-scrollbar z-30"
+        className="absolute top-22 md:top-6 left-4 md:left-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-8rem)] md:max-h-[calc(100vh-3rem)] overflow-y-auto custom-scrollbar z-30"
         style={{
           pointerEvents: isMobile ? (isSidebarOpen ? "auto" : "none") : "auto",
         }}

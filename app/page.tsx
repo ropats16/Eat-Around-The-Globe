@@ -173,7 +173,9 @@ export default function Home() {
           console.log("✅ Profile loaded:", profile);
           setUserProfile(profile);
         } else {
-          console.log("ℹ️ No profile found - user will be prompted on first save");
+          console.log(
+            "ℹ️ No profile found - user will be prompted on first save"
+          );
           setUserProfile(null);
         }
       } catch (error) {
@@ -198,8 +200,8 @@ export default function Home() {
       const isDesktop = width >= 1024;
 
       // Calculate element positions and heights for debugging
-      const sidebarMaxHeight = isMobile 
-        ? `calc(100dvh - 14rem)` 
+      const sidebarMaxHeight = isMobile
+        ? `calc(100dvh - 14rem)`
         : `calc(100vh - 3rem)`;
       const searchBarTop = isMobile ? "4.5rem" : "6.5rem";
       const activityFeedBottom = isMobile ? "1rem" : "1.5rem";
@@ -209,7 +211,11 @@ export default function Home() {
         height,
         dvh,
         deviceType: isMobile ? "mobile" : isTablet ? "tablet" : "desktop",
-        breakpoint: isMobile ? "< 768px" : isTablet ? "768-1024px" : ">= 1024px",
+        breakpoint: isMobile
+          ? "< 768px"
+          : isTablet
+          ? "768-1024px"
+          : ">= 1024px",
         sidebarMaxHeight,
         searchBarTop,
         activityFeedBottom,
