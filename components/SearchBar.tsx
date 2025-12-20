@@ -144,10 +144,22 @@ export default function SearchBar() {
     setPreviewPlace(null); // Clear temporary pin
   };
 
+  // Diagnostic logging
+  useEffect(() => {
+    if (showSuggestions && predictions.length > 0) {
+      console.log("🔍 DIAGNOSTIC: Suggestions shown");
+      console.log("SearchRef dimensions:", {
+        width: searchRef.current?.offsetWidth,
+        scrollWidth: searchRef.current?.scrollWidth,
+        clientWidth: searchRef.current?.clientWidth,
+      });
+    }
+  }, [showSuggestions, predictions.length]);
+
   return (
     <div
       ref={searchRef}
-      className="w-full pointer-events-auto z-40 h-11 md:h-12"
+      className="w-full min-w-0 pointer-events-auto z-40 h-11 md:h-12"
     >
       {/* Main Search Input - Shadcn Input Group */}
       <InputGroup className="h-11 md:h-12 rounded-2xl bg-white shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-200 border border-gray-100">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import Globe from "@/components/Globe";
 import Sidebar from "@/components/Sidebar";
@@ -31,6 +31,7 @@ export default function Home() {
   const setIsLoadingProfile = useFoodGlobeStore(
     (state) => state.setIsLoadingProfile
   );
+  const mobileLayoutRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -189,6 +190,29 @@ export default function Home() {
     loadProfile();
   }, [walletAddress, setUserProfile, setIsLoadingProfile]);
 
+  // Diagnostic logging for mobile layout
+  useEffect(() => {
+    const logLayout = () => {
+      if (mobileLayoutRef.current) {
+        console.log("📱 DIAGNOSTIC: Mobile layout dimensions:", {
+          width: mobileLayoutRef.current.offsetWidth,
+          scrollWidth: mobileLayoutRef.current.scrollWidth,
+          clientWidth: mobileLayoutRef.current.clientWidth,
+        });
+      }
+    };
+
+    const observer = new MutationObserver(logLayout);
+    if (mobileLayoutRef.current) {
+      observer.observe(mobileLayoutRef.current, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+      });
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <>
@@ -210,12 +234,16 @@ export default function Home() {
           {/* Top Row - Hamburger, SearchBar, WalletButton */}
           <div className="absolute top-4 left-4 right-4 md:top-6 md:left-auto md:right-12 md:w-96 z-40 pointer-events-auto">
             {/* Mobile: Horizontal layout */}
-            <div className="flex md:hidden items-center gap-2">
-              <HamburgerMenu />
-              <div className="flex-1">
+            <div ref={mobileLayoutRef} className="flex md:hidden items-center gap-2">
+              <div className="shrink-0">
+                <HamburgerMenu />
+              </div>
+              <div className="flex-1 min-w-0">
                 <SearchBar />
               </div>
-              <WalletButton />
+              <div className="shrink-0">
+                <WalletButton />
+              </div>
             </div>
 
             {/* Desktop: Vertical stacking */}
