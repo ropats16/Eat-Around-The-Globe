@@ -38,7 +38,9 @@ export default function LoadingScreen() {
         </motion.div>
 
         {/* Title */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Food Globe</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Eat Around The Globe
+        </h1>
 
         {/* Subtitle */}
         <p className="text-sm text-gray-500 mb-8">

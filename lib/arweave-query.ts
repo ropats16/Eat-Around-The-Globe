@@ -1,5 +1,5 @@
 // lib/arweave-query.ts
-// Query Arweave for Food Globe interactions using GraphQL
+// Query Arweave for Eat Around The Globe interactions using GraphQL
 
 import type {
   InteractionType,
@@ -14,7 +14,7 @@ const ARWEAVE_GQL_ENDPOINT = "https://arweave.net/graphql";
 const ARWEAVE_GATEWAY = "https://arweave.net";
 
 // App identifier
-const APP_NAME = "Food-Globe";
+const APP_NAME = "Eat-Around-The-Globe";
 
 // Transaction node from GraphQL
 interface TransactionEdge {

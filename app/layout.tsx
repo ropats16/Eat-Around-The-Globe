@@ -15,14 +15,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Food Globe - Discover World Cuisines",
+  title: "Eat Around The Globe - Discover World Cuisines",
   description:
     "Explore and discover the best food recommendations from around the world on an interactive 3D globe",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Food Globe",
+    title: "Eat Around The Globe",
   },
   icons: {
     icon: "/icon-192x192.png",

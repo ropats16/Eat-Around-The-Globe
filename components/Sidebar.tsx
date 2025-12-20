@@ -134,7 +134,7 @@ export default function Sidebar() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Food Globe",
+          title: "Eat Around The Globe",
           text: "Check out this amazing food discovery app!",
           url: window.location.href,
         });
@@ -166,7 +166,7 @@ export default function Sidebar() {
             <div className="w-7 h-7 flex items-center justify-center">
               <Image
                 src="/MapPinPurple.svg"
-                alt="Food Globe"
+                alt="Eat Around The Globe"
                 width={28}
                 height={28}
               />

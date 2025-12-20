@@ -26,10 +26,10 @@ if (!projectId) {
 
 // Metadata for the app
 const metadata = {
-  name: "Food Globe",
+  name: "Eat Around The Globe",
   description: "Discover and share food recommendations around the world",
-  url: "https://food-globe.vercel.app",
-  icons: ["https://food-globe.vercel.app/icon-192x192.png"],
+  url: "https://eat-around-the-globe.vercel.app",
+  icons: ["https://eat-around-the-globe.vercel.app/icon-192x192.png"],
 };
 
 // Create adapters

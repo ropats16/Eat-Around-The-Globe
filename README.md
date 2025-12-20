@@ -1,4 +1,4 @@
-# 🌍 Food Globe - Discover World Cuisines
+# 🌍 Eat Around The Globe - Discover World Cuisines
 
 A beautiful, interactive 3D globe application for discovering and exploring food recommendations from around the world. Built with Next.js, Mapbox GL JS, and Google Places API. **Inspired by Marc Lou's DataFast globe.**
 
@@ -27,6 +27,7 @@ A beautiful, interactive 3D globe application for discovering and exploring food
 ### Installation
 
 1. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
@@ -34,23 +35,27 @@ A beautiful, interactive 3D globe application for discovering and exploring food
 2. **Set up environment variables:**
 
    Create a `.env.local` file in the root directory:
+
    ```bash
    cp .env.local.example .env.local
    ```
 
    Add your API keys:
+
    ```env
    NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token_here
    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_api_key_here
    ```
 
 3. **Get Mapbox Access Token (for globe):**
+
    - Go to [Mapbox Account](https://account.mapbox.com/)
    - Sign up for free account
    - Copy your default public token
    - Add to `.env.local`
 
 4. **Get Google Maps API Key (for search):**
+
    - Go to [Google Cloud Console](https://console.cloud.google.com/)
    - Create a new project or select existing
    - Enable these APIs:
@@ -60,6 +65,7 @@ A beautiful, interactive 3D globe application for discovering and exploring food
    - Copy the key to your `.env.local`
 
 5. **Run the development server:**
+
    ```bash
    pnpm dev
    ```
@@ -93,7 +99,7 @@ A beautiful, interactive 3D globe application for discovering and exploring food
 ## 🏗️ Project Structure
 
 ```
-food-globe/
+eat-around-the-globe/
 ├── app/
 │   ├── layout.tsx          # Root layout with PWA config
 │   ├── page.tsx             # Main page component
@@ -152,6 +158,7 @@ This project is heavily inspired by **Marc Lou's DataFast** real-time analytics 
 - [Marc Lou on X](https://x.com/marc_louvion)
 
 ### Key Design Elements Borrowed:
+
 - White card UI with subtle shadows
 - "REAL-TIME/LIVE" badge styling
 - Bottom-left activity feed layout
@@ -161,6 +168,7 @@ This project is heavily inspired by **Marc Lou's DataFast** real-time analytics 
 Built with Next.js, Mapbox GL JS, and React.
 
 ### Sources:
+
 - [This Founder Hit $11K MRR by Answering One Question Google Analytics Won't | by RipeLemons | Oct, 2025 | Medium](https://ripelemons.medium.com/this-founder-hit-6k-mrr-in-11-months-his-secret-he-stopped-tracking-pageviews-026177b2e68c)
 - [Globe and Atmosphere | Mapbox GL JS | Mapbox](https://docs.mapbox.com/mapbox-gl-js/guides/globe/)
 - [Create a rotating globe | Mapbox GL JS | Mapbox](https://docs.mapbox.com/mapbox-gl-js/example/globe-spin/)

@@ -105,7 +105,7 @@ export default function ProfileSetupModal() {
                     Create Your Profile
                   </h2>
                   <p className="text-xs text-gray-500 mt-1">
-                    Set up your Food Globe identity
+                    Set up your Eat Around The Globe identity
                   </p>
                 </div>
                 <button

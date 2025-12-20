@@ -19,7 +19,7 @@ import type {
 } from "./wallet-types";
 
 // App identifier for all our transactions
-const APP_NAME = "Food-Globe";
+const APP_NAME = "Eat-Around-The-Globe";
 
 // Turbo upload endpoint
 const TURBO_UPLOAD_URL = "https://upload.ardrive.io/v1/tx";
@@ -500,8 +500,8 @@ async function ensureArweavePermissions(): Promise<void> {
     await window.arweaveWallet.connect(
       missingPermissions as ArweavePermission[],
       {
-        name: "Food Globe",
-        logo: "https://food-globe.vercel.app/icon-192x192.png",
+        name: "Eat Around The Globe",
+        logo: "https://eat-around-the-globe.vercel.app/icon-192x192.png",
       }
     );
   }
@@ -512,7 +512,7 @@ async function ensureArweavePermissions(): Promise<void> {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Create standard tags for all Food Globe transactions
+ * Create standard tags for all Eat Around The Globe transactions
  */
 function createBaseTags(
   placeId: string,
