@@ -44,6 +44,12 @@ export default function ProfileSetupModal() {
         bio: bio.trim() || undefined,
       };
 
+      console.log("📝 [PROFILE SAVE] Saving profile:", {
+        profileData,
+        walletType,
+        walletAddress,
+      });
+
       // Upload to Arweave
       const result = await uploadProfile(profileData, {
         walletType,
@@ -51,7 +57,11 @@ export default function ProfileSetupModal() {
         provider: walletProvider,
       });
 
-      console.log("✅ Profile saved to Arweave:", result.id);
+      console.log("✅ [PROFILE SAVE] Profile saved to Arweave:", {
+        txId: result.id,
+        walletAddress,
+        walletType,
+      });
 
       // Cache in store
       setUserProfile(profileData);

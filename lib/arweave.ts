@@ -325,6 +325,13 @@ export async function uploadRecommendation(
   data: RecommendationData,
   config: UploadConfig
 ): Promise<{ id: string }> {
+  console.log("📤 [UPLOAD RECOMMENDATION] Starting upload:", {
+    placeId,
+    data,
+    walletType: config.walletType,
+    walletAddress: config.walletAddress,
+  });
+
   const signer = await createSigner({
     walletType: config.walletType,
     provider: config.provider,
@@ -343,8 +350,18 @@ export async function uploadRecommendation(
     tags.push({ name: "Dietary-Tags", value: data.dietaryTags.join(",") });
   }
 
+  console.log("🏷️ [UPLOAD RECOMMENDATION] Tags:", tags);
+
   const dataItem = await createSignedDataItem(signer, data, tags);
-  return uploadDataItem(dataItem);
+  const result = await uploadDataItem(dataItem);
+
+  console.log("✅ [UPLOAD RECOMMENDATION] Upload complete:", {
+    txId: result.id,
+    placeId,
+    walletType: config.walletType,
+  });
+
+  return result;
 }
 
 /**
@@ -479,13 +496,20 @@ export async function fetchUserProfile(
     }
 
     const txId = edges[0].node.id;
-    console.log("✅ Found profile transaction:", txId);
+    const tags = edges[0].node.tags;
+    console.log("✅ [PROFILE FETCH] Found profile transaction:", {
+      txId,
+      tags,
+    });
 
     // Fetch the actual data
     const dataResponse = await fetch(`https://arweave.net/${txId}`);
     const profileData: ProfileData = await dataResponse.json();
 
-    console.log("✅ Profile loaded:", profileData);
+    console.log("✅ [PROFILE FETCH] Profile loaded:", {
+      profileData,
+      queriedAddress: walletAddress,
+    });
     return profileData;
   } catch (error) {
     console.error("❌ Failed to fetch profile:", error);
