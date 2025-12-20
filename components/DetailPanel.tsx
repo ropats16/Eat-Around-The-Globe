@@ -185,7 +185,7 @@ export default function DetailPanel() {
           key={`detail-panel-${
             selectedFood.id || selectedFood.placeId || "default"
           }`}
-          className="fixed top-22 md:top-26 right-4 md:right-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-7rem)] md:max-h-[calc(100vh-7rem)] z-50 pointer-events-auto"
+          className="fixed top-20 md:top-6 right-4 md:right-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-6rem)] md:max-h-[calc(100vh-3rem)] z-50 pointer-events-auto"
         >
           <motion.div
             initial={{ opacity: 0, x: 20 }}

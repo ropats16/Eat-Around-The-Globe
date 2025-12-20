@@ -142,23 +142,25 @@ export default function WalletButton() {
           className="md:hidden w-11 h-11 flex items-center justify-center bg-white rounded-xl shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-200 border border-gray-100 disabled:opacity-50 z-50"
           aria-label="Connect wallet"
         >
-          {isConnecting ? (
-            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-          ) : (
-            <svg
-              className="w-5 h-5 text-blue-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"
-              />
-            </svg>
-          )}
+          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-blue-300 to-blue-400 flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:scale-105 transition-transform">
+            {isConnecting ? (
+              <Loader2 className="w-5 h-5 text-white animate-spin" />
+            ) : (
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"
+                />
+              </svg>
+            )}
+          </div>
         </motion.button>
 
         {/* Desktop: Full button */}

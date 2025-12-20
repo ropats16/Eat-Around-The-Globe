@@ -147,7 +147,7 @@ export default function SearchBar() {
   return (
     <div
       ref={searchRef}
-      className="w-full md:absolute md:top-26 md:right-12 md:w-96 pointer-events-auto z-40 h-11 md:h-12"
+      className="w-full pointer-events-auto z-40 h-11 md:h-12"
     >
       {/* Main Search Input - Shadcn Input Group */}
       <InputGroup className="h-11 md:h-12 rounded-lg bg-white shadow-[0_1px_6px_rgba(32,33,36,0.28)] hover:shadow-[0_2px_8px_rgba(32,33,36,0.28)] transition-shadow duration-200">

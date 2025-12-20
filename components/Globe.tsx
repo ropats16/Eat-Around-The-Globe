@@ -55,12 +55,16 @@ export default function Globe() {
 
     mapboxgl.accessToken = mapboxToken;
 
+    // Use lower zoom on mobile to show more of the globe
+    const isMobile = window.innerWidth < 768;
+    const initialZoom = isMobile ? 1 : 2.5;
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/standard",
       projection: { name: "globe" },
       center: [0, 20],
-      zoom: 2.5,
+      zoom: initialZoom,
       pitch: 0,
       maxZoom: 18,
       minZoom: 1,
@@ -140,9 +144,11 @@ export default function Globe() {
     // Start rotation if autoRotate is true
     if (autoRotate && map.current) {
       // Reset zoom to initial level when rotation restarts
+      const isMobile = window.innerWidth < 768;
+      const initialZoom = isMobile ? 1.5 : 2.5;
       const currentZoom = map.current.getZoom();
       if (currentZoom > 5) {
-        map.current.easeTo({ zoom: 2.5, duration: 1500 });
+        map.current.easeTo({ zoom: initialZoom, duration: 1500 });
       }
 
       const secondsPerRevolution = 120;
