@@ -247,7 +247,10 @@ async function createSolanaSigner(
   }
 
   if (providerWithWallet.provider) {
-    const nestedProvider = providerWithWallet.provider as Record<string, unknown>;
+    const nestedProvider = providerWithWallet.provider as Record<
+      string,
+      unknown
+    >;
     console.log("🔍 [SOLANA SIGNER] Nested provider found:", {
       type: typeof nestedProvider,
       keys: Object.keys(nestedProvider),
@@ -285,10 +288,11 @@ async function createSolanaSigner(
       });
 
       // Try using request method with solana_signMessage first
-      // This is the recommended way for WalletConnect/Reown
       if (originalProvider.request) {
         try {
-          console.log("🔐 [SOLANA SIGNER] Attempting solana_signMessage via request()...");
+          console.log(
+            "🔐 [SOLANA SIGNER] Attempting solana_signMessage via request()..."
+          );
           const result = (await originalProvider.request({
             method: "solana_signMessage",
             params: {
@@ -297,7 +301,6 @@ async function createSolanaSigner(
           })) as { signature: string };
 
           console.log("✅ [SOLANA SIGNER] solana_signMessage succeeded");
-          // Result should be base64 encoded signature, convert to Uint8Array
           const signature = Buffer.from(result.signature, "base64");
           console.log("🔑 [SOLANA SIGNER] Signature length:", signature.length);
           return signature;
@@ -306,82 +309,164 @@ async function createSolanaSigner(
             "❌ [SOLANA SIGNER] solana_signMessage via request() failed:",
             requestError
           );
-
-          // Fall back to direct signMessage if request fails
-          if (originalProvider.signMessage) {
-            console.log("🔄 [SOLANA SIGNER] Falling back to provider.signMessage()...");
-            try {
-              const result = await originalProvider.signMessage(message);
-              console.log("✅ [SOLANA SIGNER] provider.signMessage() succeeded");
-              return result.signature;
-            } catch (signMessageError) {
-              console.error(
-                "❌ [SOLANA SIGNER] provider.signMessage() also failed:",
-                signMessageError
-              );
-              throw signMessageError;
-            }
-          }
-
-          throw requestError;
         }
       }
 
-      // If no request method, try signMessage directly
+      // Fall back to direct signMessage
       if (originalProvider.signMessage) {
-        console.log("🔐 [SOLANA SIGNER] Attempting provider.signMessage()...");
-        const result = await originalProvider.signMessage(message);
-        console.log("✅ [SOLANA SIGNER] signMessage returned, processing...");
+        console.log(
+          "🔄 [SOLANA SIGNER] Falling back to provider.signMessage()..."
+        );
+        try {
+          const result = await originalProvider.signMessage(message);
 
-        // The result should be { signature: Uint8Array } according to the interface
-        // But let's handle various possible formats defensively
+          // Cast to unknown to allow runtime type checking across different wallet implementations
+          const rawResult: unknown = result;
 
-        // Case 1: result has a signature property
-        if (result && typeof result === "object" && "signature" in result) {
-          const sig = (result as { signature: unknown }).signature;
-          console.log("🔍 [SOLANA SIGNER] Has signature property, type:", typeof sig, "isUint8Array:", sig instanceof Uint8Array);
+          // === DIAGNOSTIC LOGGING ===
+          console.log("🔍 [SOLANA SIGNER] Raw result from signMessage:", {
+            resultType: typeof rawResult,
+            isNull: rawResult === null,
+            isUndefined: rawResult === undefined,
+            isUint8Array: rawResult instanceof Uint8Array,
+            isBuffer: Buffer.isBuffer(rawResult),
+            constructorName: (rawResult as { constructor?: { name?: string } })
+              ?.constructor?.name,
+            keys:
+              rawResult && typeof rawResult === "object"
+                ? Object.keys(rawResult)
+                : "N/A",
+            result: rawResult,
+          });
 
-          // If it's already a Uint8Array, return it
-          if (sig instanceof Uint8Array) {
-            console.log("✅ [SOLANA SIGNER] Signature is Uint8Array, length:", sig.length);
-            return sig;
+          if (
+            rawResult &&
+            typeof rawResult === "object" &&
+            "signature" in rawResult
+          ) {
+            const sig = (rawResult as { signature: unknown }).signature;
+            console.log("🔍 [SOLANA SIGNER] Signature property:", {
+              sigType: typeof sig,
+              isUint8Array: sig instanceof Uint8Array,
+              isBuffer: Buffer.isBuffer(sig),
+              constructorName: (sig as { constructor?: { name?: string } })
+                ?.constructor?.name,
+              sigLength:
+                sig && typeof sig === "object" && "length" in sig
+                  ? (sig as ArrayLike<number>).length
+                  : "N/A",
+              sigKeys:
+                sig && typeof sig === "object" && !ArrayBuffer.isView(sig)
+                  ? Object.keys(sig)
+                  : "N/A",
+              sig: sig,
+            });
+          }
+          // === END DIAGNOSTIC LOGGING ===
+
+          console.log("✅ [SOLANA SIGNER] provider.signMessage() succeeded");
+
+          // Case 1: result has a signature property
+          if (
+            rawResult &&
+            typeof rawResult === "object" &&
+            "signature" in rawResult
+          ) {
+            const sig = (rawResult as { signature: unknown }).signature;
+
+            if (sig instanceof Uint8Array) {
+              console.log(
+                "✅ [SOLANA SIGNER] Signature is Uint8Array, length:",
+                sig.length
+              );
+              return sig;
+            }
+
+            if (Buffer.isBuffer(sig)) {
+              console.log(
+                "🔄 [SOLANA SIGNER] Signature is Buffer, converting..."
+              );
+              return new Uint8Array(sig);
+            }
+
+            // Handle array-like objects (including {0: x, 1: y, ...} format)
+            if (typeof sig === "object" && sig !== null) {
+              if ("length" in sig) {
+                console.log(
+                  "🔄 [SOLANA SIGNER] Signature is array-like, converting..."
+                );
+                return Uint8Array.from(sig as ArrayLike<number>);
+              }
+              // Check if it's an object with numeric keys (like {0: 1, 1: 2, ...})
+              const keys = Object.keys(sig);
+              if (keys.length > 0 && keys.every((k) => !isNaN(Number(k)))) {
+                console.log(
+                  "🔄 [SOLANA SIGNER] Signature is object with numeric keys, converting..."
+                );
+                const arr = new Uint8Array(keys.length);
+                for (let i = 0; i < keys.length; i++) {
+                  arr[i] = (sig as Record<string, number>)[i];
+                }
+                return arr;
+              }
+            }
+
+            // If signature is a base64 string
+            if (typeof sig === "string") {
+              console.log(
+                "🔄 [SOLANA SIGNER] Signature is string (likely base64), converting..."
+              );
+              return Uint8Array.from(Buffer.from(sig, "base64"));
+            }
+
+            console.error(
+              "❌ [SOLANA SIGNER] Unknown signature format in result.signature:",
+              sig
+            );
+            throw new Error(
+              `Unknown signature format: ${typeof sig}, constructor: ${
+                (sig as { constructor?: { name?: string } })?.constructor?.name
+              }`
+            );
           }
 
-          // If it's a Buffer (Node.js), convert to Uint8Array
-          if (Buffer.isBuffer(sig)) {
-            console.log("🔄 [SOLANA SIGNER] Signature is Buffer, converting...");
-            return new Uint8Array(sig);
+          // Case 2: result IS the signature directly (some wallets do this)
+          if (rawResult instanceof Uint8Array) {
+            console.log(
+              "✅ [SOLANA SIGNER] Result IS Uint8Array, length:",
+              rawResult.length
+            );
+            return rawResult;
           }
 
-          // If it's an array or array-like object, convert it
-          if (typeof sig === "object" && sig !== null && "length" in sig) {
-            console.log("🔄 [SOLANA SIGNER] Signature is array-like, converting...");
-            return Uint8Array.from(sig as ArrayLike<number>);
+          if (Buffer.isBuffer(rawResult)) {
+            console.log("🔄 [SOLANA SIGNER] Result is Buffer, converting...");
+            return new Uint8Array(rawResult);
           }
-        }
 
-        // Case 2: result IS the signature directly (Uint8Array)
-        if (result instanceof Uint8Array) {
-          console.log("✅ [SOLANA SIGNER] Result IS Uint8Array, length:", result.length);
-          return result;
+          console.error(
+            "❌ [SOLANA SIGNER] Unexpected result format:",
+            rawResult
+          );
+          throw new Error(
+            `Unexpected signMessage result format: ${typeof rawResult}`
+          );
+        } catch (signMessageError) {
+          console.error(
+            "❌ [SOLANA SIGNER] provider.signMessage() failed:",
+            signMessageError
+          );
+          throw signMessageError;
         }
-
-        // Case 3: result is a Buffer
-        if (Buffer.isBuffer(result)) {
-          console.log("🔄 [SOLANA SIGNER] Result is Buffer, converting...");
-          return new Uint8Array(result);
-        }
-
-        console.error("❌ [SOLANA SIGNER] Unexpected signature format! Type:", typeof result);
-        console.error("❌ [SOLANA SIGNER] Result:", result);
-        throw new Error("Signature is not in expected format (Uint8Array)");
       }
 
       throw new Error("Provider does not support message signing");
     },
   };
 
-  console.log("🔐 [SOLANA SIGNER] Creating InjectedSolanaSigner with wrapped provider...");
+  console.log(
+    "🔐 [SOLANA SIGNER] Creating InjectedSolanaSigner with wrapped provider..."
+  );
   try {
     const signer = new InjectedSolanaSigner(wrappedProvider);
     console.log("✅ [SOLANA SIGNER] InjectedSolanaSigner created successfully");
