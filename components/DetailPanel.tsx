@@ -192,12 +192,12 @@ export default function DetailPanel() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-h-full flex flex-col"
+            className="bg-white rounded-3xl shadow-xl shadow-black/10 border border-gray-100 overflow-hidden max-h-full flex flex-col hover:shadow-2xl hover:shadow-black/15 transition-shadow duration-200"
           >
             {/* Close Button */}
             <button
               onClick={closeDetailPanel}
-              className="absolute top-4 right-4 z-20 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors"
+              className="absolute top-4 right-4 z-20 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg shadow-black/10 flex items-center justify-center hover:bg-gray-100 hover:scale-110 transition-all duration-200"
             >
               <X className="w-4 h-4 text-gray-700" />
             </button>
@@ -454,7 +454,7 @@ export default function DetailPanel() {
                         href={selectedFood.externalLinks.restaurant}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:shadow-md shadow-black/5 border border-gray-200 hover:scale-[1.02]"
                       >
                         <ExternalLink className="w-4 h-4 text-purple-600" />
                         <span className="text-sm text-gray-900 font-medium">
@@ -467,7 +467,7 @@ export default function DetailPanel() {
                         href={selectedFood.externalLinks.wiki}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:shadow-md shadow-black/5 border border-gray-200 hover:scale-[1.02]"
                       >
                         <ExternalLink className="w-4 h-4 text-blue-600" />
                         <span className="text-sm text-gray-900 font-medium">

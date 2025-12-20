@@ -84,7 +84,7 @@ export default function ActivityFeed() {
       transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
       className="absolute bottom-4 left-4 md:bottom-6 md:left-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-12rem)] md:max-h-none pointer-events-auto z-20"
     >
-      <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl p-3 md:p-4 border border-gray-700/30">
+      <div className="bg-gray-900/90 backdrop-blur-md rounded-3xl shadow-2xl shadow-black/25 p-3 md:p-4 border border-gray-700/50 hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] transition-shadow duration-200">
         <div className="h-40 md:h-48 max-h-[calc(100dvh-14rem)] md:max-h-48 overflow-y-auto space-y-2 custom-scrollbar">
           <AnimatePresence mode="popLayout">
             {visibleFoods.map((food, index) => (
@@ -95,7 +95,7 @@ export default function ActivityFeed() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => handleFoodClick(food)}
-                className="w-full text-left group hover:bg-white/5 p-2 rounded-lg transition-colors"
+                className="w-full text-left group hover:bg-white/10 p-2 rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-lg shadow-black/20"
               >
                 <div className="flex items-start gap-2">
                   <Eye className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />

@@ -112,7 +112,7 @@ export default function Home() {
             // Add each recommender
             for (const rec of recs) {
               addFood(foodPlace, {
-                name: rec.author.slice(0, 8) + "...", // Shortened wallet address
+                name: rec.recommenderName || `${rec.author.slice(0, 6)}...${rec.author.slice(-4)}`, // Use username if available, otherwise format wallet
                 walletAddress: rec.author, // Full wallet address for duplicate detection
                 caption: rec.data.caption || undefined,
                 category: rec.data.category as

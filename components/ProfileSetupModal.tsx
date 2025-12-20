@@ -97,7 +97,7 @@ export default function ProfileSetupModal() {
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none"
           >
-            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-[420px] pointer-events-auto">
+            <div className="bg-white rounded-3xl shadow-2xl shadow-black/15 border border-gray-100 overflow-hidden w-full max-w-[420px] pointer-events-auto">
               {/* Header */}
               <div className="flex items-center justify-between px-6 pt-6 pb-2">
                 <div>
@@ -111,7 +111,7 @@ export default function ProfileSetupModal() {
                 <button
                   onClick={closeProfileModal}
                   disabled={isUploading}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200 hover:scale-110 disabled:opacity-50 shadow-md shadow-black/5"
                 >
                   <X className="w-4 h-4 text-gray-500" />
                 </button>

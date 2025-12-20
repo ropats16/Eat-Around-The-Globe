@@ -26,7 +26,7 @@ export default function LoadingScreen() {
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-white rounded-3xl shadow-2xl p-10 text-center max-w-sm mx-4"
+        className="bg-white rounded-3xl shadow-2xl shadow-black/15 border border-gray-100 p-10 text-center max-w-sm mx-4"
       >
         {/* Animated globe */}
         <motion.div

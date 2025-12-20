@@ -150,7 +150,7 @@ export default function SearchBar() {
       className="w-full pointer-events-auto z-40 h-11 md:h-12"
     >
       {/* Main Search Input - Shadcn Input Group */}
-      <InputGroup className="h-11 md:h-12 rounded-lg bg-white shadow-[0_1px_6px_rgba(32,33,36,0.28)] hover:shadow-[0_2px_8px_rgba(32,33,36,0.28)] transition-shadow duration-200">
+      <InputGroup className="h-11 md:h-12 rounded-2xl bg-white shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-200 border border-gray-100">
         <InputGroupAddon>
           <SearchIcon />
         </InputGroupAddon>
@@ -183,7 +183,7 @@ export default function SearchBar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.15 }}
-            className="mt-2 bg-white rounded-3xl shadow-[0_1px_6px_rgba(32,33,36,0.28)] overflow-hidden max-h-[calc(100dvh-13rem)] sm:max-h-96 overflow-y-auto"
+            className="mt-2 bg-white rounded-3xl shadow-xl shadow-black/10 border border-gray-100 overflow-hidden max-h-[calc(100dvh-13rem)] sm:max-h-96 overflow-y-auto"
           >
             <div className="py-2">
               {predictions.map((prediction) => (
@@ -219,7 +219,7 @@ export default function SearchBar() {
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="mt-2 text-xs text-gray-500 text-center bg-white rounded-full py-2 px-4 shadow-[0_1px_6px_rgba(32,33,36,0.28)]"
+            className="mt-2 text-xs text-gray-500 text-center bg-white rounded-2xl py-2 px-4 shadow-lg shadow-black/5 border border-gray-100"
           >
             Type at least 3 characters to search
           </motion.div>
@@ -240,7 +240,7 @@ export default function SearchBar() {
 
       {/* Loading Place Details */}
       {isLoadingPlace && (
-        <div className="mt-4 bg-white rounded-3xl shadow-[0_2px_12px_rgba(32,33,36,0.28)] p-8 flex items-center justify-center">
+        <div className="mt-4 bg-white rounded-3xl shadow-xl shadow-black/10 border border-gray-100 p-8 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
         </div>
       )}

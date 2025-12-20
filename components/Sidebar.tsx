@@ -7,14 +7,10 @@ import {
   Share2,
   RotateCw,
   Pause,
-  Users,
-  MapPin,
-  UtensilsCrossed,
   Coffee,
   IceCream,
   Pizza,
   Fish,
-  Leaf,
   Croissant,
   Salad,
   Sparkles,
@@ -23,6 +19,8 @@ import {
   Milk,
   Nut,
   LucideIcon,
+  UtensilsCrossed,
+  Leaf,
 } from "lucide-react";
 import { FoodCategory, DietaryTag } from "@/lib/types";
 import Image from "next/image";
@@ -86,25 +84,45 @@ export default function Sidebar() {
   // Get unique recommenders - flatten all recommenders from all foods
   const allRecommenders = foods.flatMap((f) => f.recommenders || []);
   const recommenderCounts = allRecommenders.reduce((acc, rec) => {
-    const existing = acc.find((r) => r.name === rec.name);
+    // Use walletAddress as the unique identifier for grouping
+    const existing = acc.find((r) => r.walletAddress === rec.walletAddress);
+
+    // Helper to get display name - prefer username over wallet
+    const getDisplayName = (name: string | undefined, wallet: string) => {
+      if (!name || name.includes("...")) {
+        // No name or shortened wallet - format wallet properly
+        return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+      }
+      return name;
+    };
+
     if (existing) {
       existing.count++;
+      // Update profile picture if this entry has one and existing doesn't
+      if (rec.profilePicture && !existing.profilePicture) {
+        existing.profilePicture = rec.profilePicture;
+      }
+      // Prefer actual usernames over shortened wallet addresses
+      if (rec.name && !rec.name.includes("...")) {
+        existing.displayName = rec.name;
+      }
     } else {
       acc.push({
-        name: rec.name,
+        walletAddress: rec.walletAddress,
+        displayName: getDisplayName(rec.name, rec.walletAddress),
         profilePicture: rec.profilePicture,
         count: 1,
       });
     }
     return acc;
-  }, [] as { name: string; profilePicture?: string; count: number }[]);
+  }, [] as { walletAddress: string; displayName: string; profilePicture?: string; count: number }[]);
 
   const recommenders = recommenderCounts
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
   // Get unique users count
-  const uniqueUsers = new Set(allRecommenders.map((r) => r.name)).size;
+  const uniqueUsers = new Set(allRecommenders.map((r) => r.walletAddress)).size;
 
   // Get countries with counts
   const countries = foods
@@ -195,7 +213,7 @@ export default function Sidebar() {
         }}
       >
         {/* Main Card - White style like DataFast */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col gap-1.5 md:gap-2.5 p-3 md:p-4">
+        <div className="bg-white rounded-2xl shadow-xl shadow-black/10 border border-gray-100 flex flex-col gap-1.5 md:gap-2.5 p-3 md:p-4 hover:shadow-2xl hover:shadow-black/15 transition-shadow duration-200">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -226,10 +244,10 @@ export default function Sidebar() {
               </button>
               <button
                 onClick={toggleAutoRotate}
-                className={`p-1.5 rounded-lg transition-colors ${
+                className={`p-1.5 rounded-xl transition-all duration-200 hover:scale-105 ${
                   autoRotate
-                    ? "bg-purple-100 text-purple-600"
-                    : "bg-gray-100 text-gray-600"
+                    ? "bg-linear-to-br from-fuchsia-300 to-fuchsia-500 text-white shadow-md shadow-fuchsia-600/20"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
                 title={autoRotate ? "Pause rotation" : "Start rotation"}
               >
@@ -243,9 +261,9 @@ export default function Sidebar() {
           </div>
 
           {/* Main Stat */}
-          <div className="flex items-baseline gap-1 text-xs md:text-sm flex-wrap">
+          <div className="flex items-baseline gap-1 ml-2 text-xs md:text-sm flex-wrap">
             <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-purple-500 rounded-full"></div>
+              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-linear-to-br from-emerald-300 to-emerald-500 rounded-full shadow-sm shadow-emerald-600/20"></div>
               <span className="text-sm md:text-lg font-bold text-gray-900">
                 {filteredFoods.length}
               </span>
@@ -265,32 +283,35 @@ export default function Sidebar() {
           {/* Top Recommenders */}
           {recommenders.length > 0 && (
             <div>
-              <h3 className="text-[10px] md:text-xs text-gray-500 font-medium mb-1.5 md:mb-2 flex items-center gap-1">
-                <Users className="w-3 h-3 md:w-3.5 md:h-3.5" />
+              <h3 className="text-[10px] md:text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">
                 Top Recommenders
               </h3>
-              <div className="flex flex-wrap gap-1 md:gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {recommenders.map((rec) => (
                   <div
-                    key={rec.name}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded-full border border-gray-200"
+                    key={rec.walletAddress}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10 transition-shadow duration-200"
                   >
                     {rec.profilePicture ? (
-                      <Image
-                        src={rec.profilePicture}
-                        alt={rec.name}
-                        width={16}
-                        height={16}
-                        className="w-4 h-4 rounded-full object-cover"
-                      />
+                      <div className="w-5 h-5 rounded-md overflow-hidden shadow-sm shadow-black/10">
+                        <Image
+                          src={rec.profilePicture}
+                          alt={rec.displayName}
+                          width={20}
+                          height={20}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     ) : (
-                      <div className="w-4 h-4 rounded-full bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                        <span className="text-white text-[8px] font-semibold">
-                          {rec.name.charAt(0).toUpperCase()}
+                      <div className="w-5 h-5 rounded-md bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-600/20">
+                        <span className="text-white text-[9px] font-bold">
+                          {rec.displayName.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
-                    <span className="text-xs text-gray-700">{rec.name}</span>
+                    <span className="text-xs font-medium text-gray-900">
+                      {rec.displayName}
+                    </span>
                     <span className="text-[10px] text-gray-500 font-semibold">
                       ({rec.count})
                     </span>
@@ -302,18 +323,21 @@ export default function Sidebar() {
 
           {/* Top Countries */}
           <div>
-            <h3 className="text-[10px] md:text-xs text-gray-500 font-medium mb-1.5 md:mb-2 flex items-center gap-1">
-              <MapPin className="w-3 h-3 md:w-3.5 md:h-3.5" />
+            <h3 className="text-[10px] md:text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">
               Top Countries
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {countries.map((c) => (
                 <div
                   key={c.countryCode}
-                  className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded-full border border-gray-200"
+                  className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10 transition-shadow duration-200"
                 >
-                  <span className="text-sm">{getFlagEmoji(c.countryCode)}</span>
-                  <span className="text-xs text-gray-700">{c.country}</span>
+                  <span className="text-base">
+                    {getFlagEmoji(c.countryCode)}
+                  </span>
+                  <span className="text-xs font-medium text-gray-900">
+                    {c.country}
+                  </span>
                   <span className="text-[10px] text-gray-500 font-semibold">
                     ({c.count})
                   </span>
@@ -324,8 +348,7 @@ export default function Sidebar() {
 
           {/* Category Filters */}
           <div>
-            <h3 className="text-[10px] md:text-xs text-gray-500 font-medium mb-1.5 md:mb-2 flex items-center gap-1">
-              <UtensilsCrossed className="w-3 h-3 md:w-3.5 md:h-3.5" />
+            <h3 className="text-[10px] md:text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">
               Place Type
             </h3>
             <div className="flex flex-wrap gap-1.5">
@@ -336,15 +359,14 @@ export default function Sidebar() {
                   <button
                     key={cat.value}
                     onClick={() => toggleCategory(cat.value)}
-                    className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] md:text-[11px] font-medium transition-all border ${
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-all duration-200 border ${
                       isActive
-                        ? "bg-purple-500 text-white border-purple-500 shadow-sm"
-                        : "bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50"
+                        ? "bg-linear-to-br from-orange-400 to-orange-600 text-white border-orange-500 shadow-md shadow-orange-600/25"
+                        : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:border-orange-300 hover:bg-orange-50 hover:shadow-md hover:shadow-black/10"
                     }`}
                   >
-                    <Icon className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                    <span className="hidden sm:inline">{cat.label}</span>
-                    <span className="sm:hidden">{cat.label.split(" ")[0]}</span>
+                    <Icon className="w-3 h-3" />
+                    <span>{cat.label}</span>
                   </button>
                 );
               })}
@@ -353,8 +375,7 @@ export default function Sidebar() {
 
           {/* Dietary Filters */}
           <div>
-            <h3 className="text-[10px] md:text-xs text-gray-500 font-medium mb-1.5 md:mb-2 flex items-center gap-1">
-              <Leaf className="w-3 h-3 md:w-3.5 md:h-3.5" />
+            <h3 className="text-[10px] md:text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">
               Dietary Options
             </h3>
             <div className="flex flex-wrap gap-1.5">
@@ -365,17 +386,14 @@ export default function Sidebar() {
                   <button
                     key={diet.value}
                     onClick={() => toggleDietary(diet.value)}
-                    className={`flex items-center gap-0.5 md:gap-1 px-1.5 md:px-2 py-1 md:py-1.5 rounded-lg text-[9px] md:text-[11px] font-medium transition-all border ${
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-all duration-200 border ${
                       isActive
-                        ? "bg-green-500 text-white border-green-500 shadow-sm"
-                        : "bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50"
+                        ? "bg-linear-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md shadow-green-600/25"
+                        : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:border-green-300 hover:bg-green-50 hover:shadow-md hover:shadow-black/10"
                     }`}
                   >
-                    <Icon className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                    <span className="hidden sm:inline">{diet.label}</span>
-                    <span className="sm:hidden">
-                      {diet.label.split("-")[0]}
-                    </span>
+                    <Icon className="w-3 h-3" />
+                    <span>{diet.label}</span>
                   </button>
                 );
               })}
