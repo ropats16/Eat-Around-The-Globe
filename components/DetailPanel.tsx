@@ -185,7 +185,7 @@ export default function DetailPanel() {
           key={`detail-panel-${
             selectedFood.id || selectedFood.placeId || "default"
           }`}
-          className="fixed top-[9.5rem] md:top-26 right-4 md:right-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-11rem)] md:max-h-[calc(100vh-7rem)] z-50 pointer-events-auto"
+          className="fixed top-[5.5rem] md:top-26 right-4 md:right-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-7rem)] md:max-h-[calc(100vh-7rem)] z-50 pointer-events-auto"
         >
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -203,7 +203,7 @@ export default function DetailPanel() {
             </button>
 
             {/* Scrollable Content */}
-            <div className="overflow-y-auto custom-scrollbar">
+            <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0">
               {/* Images */}
               {selectedFood.images.length > 0 && (
                 <div className="relative h-56 bg-gray-100">

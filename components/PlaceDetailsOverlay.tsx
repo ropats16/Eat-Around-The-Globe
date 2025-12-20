@@ -229,7 +229,7 @@ export default function PlaceDetailsOverlay({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.2 }}
-        className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-h-[calc(100vh-7rem)] flex flex-col z-10"
+        className="fixed md:relative top-[5.5rem] md:top-auto left-4 md:left-auto right-4 md:right-auto w-[calc(100%-2rem)] md:w-auto bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-h-[calc(100dvh-7rem)] md:max-h-[calc(100vh-7rem)] flex flex-col z-50 md:z-10"
       >
         {/* Scrollable wrapper */}
         <div className="overflow-y-auto custom-scrollbar">

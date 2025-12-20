@@ -183,7 +183,7 @@ export default function SearchBar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.15 }}
-            className="mt-2 bg-white rounded-3xl shadow-[0_1px_6px_rgba(32,33,36,0.28)] overflow-hidden max-h-[calc(100dvh-12rem)] sm:max-h-96 overflow-y-auto"
+            className="mt-2 bg-white rounded-3xl shadow-[0_1px_6px_rgba(32,33,36,0.28)] overflow-hidden max-h-[calc(100dvh-13rem)] sm:max-h-96 overflow-y-auto"
           >
             <div className="py-2">
               {predictions.map((prediction) => (
@@ -226,9 +226,9 @@ export default function SearchBar() {
         )}
       </AnimatePresence>
 
-      {/* Place Details Overlay */}
+      {/* Place Details Overlay - positioned absolutely on mobile */}
       {selectedPlace && (
-        <div className="mt-4">
+        <div className="md:mt-4">
           <PlaceDetailsOverlay
             place={selectedPlace}
             onClose={handleCloseOverlay}
