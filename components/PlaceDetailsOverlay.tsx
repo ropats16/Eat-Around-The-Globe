@@ -63,6 +63,7 @@ export default function PlaceDetailsOverlay({
   const walletProvider = useFoodGlobeStore((state) => state.walletProvider);
   const userProfile = useFoodGlobeStore((state) => state.userProfile);
   const openProfileModal = useFoodGlobeStore((state) => state.openProfileModal);
+  const openWalletModal = useFoodGlobeStore((state) => state.openWalletModal);
 
   // Memoized duplicate detection - check if this place already exists
   const existingPlace = useMemo(() => {
@@ -225,14 +226,14 @@ export default function PlaceDetailsOverlay({
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
+        exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="fixed md:relative top-20 md:top-auto left-4 md:left-auto right-4 md:right-auto w-[calc(100%-2rem)] md:w-auto bg-white rounded-3xl shadow-xl shadow-black/10 border border-gray-100 overflow-hidden max-h-[calc(100dvh-6rem)] md:max-h-[calc(100vh-7rem)] flex flex-col z-50 md:z-10 hover:shadow-2xl hover:shadow-black/15 transition-shadow duration-200"
+        className="fixed md:relative bottom-4 md:bottom-auto left-4 md:left-auto right-4 md:right-auto w-[calc(100%-2rem)] md:w-auto md:mb-6 bg-white rounded-2xl shadow-xl shadow-black/10 border border-gray-100 overflow-hidden max-h-[calc(100dvh-14rem)] md:max-h-[calc(100vh-12rem)] flex flex-col z-30 md:z-10 hover:shadow-2xl hover:shadow-black/15 transition-shadow duration-200"
       >
         {/* Scrollable wrapper */}
-        <div className="overflow-y-auto custom-scrollbar">
+        <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0">
           {/* Header with Photos */}
           {photos.length > 0 && (
             <div className="relative h-48 bg-gray-100">
@@ -250,36 +251,36 @@ export default function PlaceDetailsOverlay({
               </div>
               <button
                 onClick={onClose}
-                className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors"
+                className="absolute top-2 right-2 w-7 h-7 bg-white/95 backdrop-blur-sm rounded-lg shadow-sm shadow-black/10 flex items-center justify-center hover:bg-gray-100 hover:shadow-md hover:shadow-black/15 transition-all duration-200"
               >
-                <X className="w-4 h-4 text-gray-700" />
+                <X className="w-3.5 h-3.5 text-gray-700" />
               </button>
             </div>
           )}
 
           {/* Content */}
-          <div className="p-6 space-y-5">
+          <div className="p-3 md:p-4 space-y-3">
             {/* Title and Rating */}
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
                 {place.name}
               </h2>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {place.rating && (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 rounded-full border border-yellow-200">
-                    <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                    <span className="text-sm font-semibold text-gray-900">
+                  <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 rounded-lg border border-yellow-200 shadow-sm shadow-black/5">
+                    <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                    <span className="text-xs font-semibold text-gray-900">
                       {place.rating}
                     </span>
                     {place.user_ratings_total && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-[10px] text-gray-500">
                         ({place.user_ratings_total.toLocaleString()})
                       </span>
                     )}
                   </div>
                 )}
                 {priceLevel && (
-                  <span className="px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200 text-sm text-gray-700 font-medium">
+                  <span className="px-2 py-1 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5 text-xs text-gray-700 font-medium">
                     {priceLevel}
                   </span>
                 )}
@@ -287,33 +288,33 @@ export default function PlaceDetailsOverlay({
             </div>
 
             {/* Details Grid */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               {place.formatted_address && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-700">
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-3 h-3 text-gray-400 shrink-0 mt-0.5" />
+                  <span className="text-xs text-gray-700">
                     {place.formatted_address}
                   </span>
                 </div>
               )}
 
               {place.international_phone_number && (
-                <div className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                  <span className="text-sm text-gray-700">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-3 h-3 text-gray-400 shrink-0" />
+                  <span className="text-xs text-gray-700">
                     {place.international_phone_number}
                   </span>
                 </div>
               )}
 
               {place.website && (
-                <div className="flex items-center gap-3">
-                  <GlobeIcon className="w-4 h-4 text-gray-400 shrink-0" />
+                <div className="flex items-center gap-2">
+                  <GlobeIcon className="w-3 h-3 text-gray-400 shrink-0" />
                   <a
                     href={place.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-purple-600 hover:underline truncate"
+                    className="text-xs text-blue-600 hover:underline truncate"
                   >
                     {new URL(place.website).hostname}
                   </a>
@@ -321,9 +322,9 @@ export default function PlaceDetailsOverlay({
               )}
 
               {place.opening_hours?.weekday_text && (
-                <div className="flex items-start gap-3">
-                  <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                  <div className="text-sm text-gray-700">
+                <div className="flex items-start gap-2">
+                  <Clock className="w-3 h-3 text-gray-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-gray-700">
                     <details className="cursor-pointer">
                       <summary className="hover:text-gray-900 font-medium">
                         {/* Using deprecated open_now for backwards compatibility */}
@@ -333,7 +334,7 @@ export default function PlaceDetailsOverlay({
                           <span className="text-red-600">Closed</span>
                         )}
                       </summary>
-                      <ul className="mt-2 space-y-1 text-xs text-gray-600">
+                      <ul className="mt-1.5 space-y-0.5 text-[10px] text-gray-600">
                         {place.opening_hours.weekday_text.map((day, index) => (
                           <li key={index}>{day}</li>
                         ))}
@@ -351,49 +352,52 @@ export default function PlaceDetailsOverlay({
             {!showForm ? (
               <Button
                 onClick={() => {
-                  // Check if user has profile first
-                  if (!userProfile && walletAddress) {
-                    // No profile - open profile modal
+                  // Check wallet connection first
+                  if (!walletAddress) {
+                    // No wallet connected - open wallet modal
+                    openWalletModal();
+                  } else if (!userProfile) {
+                    // Wallet connected but no profile - open profile modal
                     openProfileModal();
                   } else {
-                    // Has profile or no wallet - show form
+                    // Wallet connected and has profile - show form
                     setShowForm(true);
                   }
                 }}
                 disabled={isSaving}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-6 font-medium shadow-sm hover:shadow-md transition-all"
+                className="w-full bg-linear-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg py-3 text-sm font-medium shadow-md shadow-blue-600/25 hover:shadow-lg hover:shadow-blue-600/30 transition-all duration-200"
               >
-                <span className="flex items-center justify-center gap-2">
-                  <Plus className="w-5 h-5" />
+                <span className="flex items-center justify-center gap-1.5">
+                  <Plus className="w-4 h-4" />
                   Add to My Map
                 </span>
               </Button>
             ) : (
-              <div className="space-y-4 p-5 bg-gray-50 rounded-xl border border-gray-200">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <User className="w-5 h-5 text-purple-600" />
+              <div className="space-y-2.5 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-1.5 uppercase tracking-wide">
+                  {/* <User className="w-3.5 h-3.5 text-purple-600" /> */}
                   Your Recommendation
                 </h3>
 
                 {/* User info display */}
                 {userProfile && (
-                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5">
                     {userProfile.pfp ? (
-                      <div className="relative w-10 h-10">
+                      <div className="relative w-7 h-7">
                         <Image
                           src={userProfile.pfp}
                           alt={userProfile.username}
                           fill
-                          className="rounded-full object-cover"
+                          className="rounded-md object-cover"
                         />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
+                      <div className="w-7 h-7 rounded-md bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-600/20">
+                        <User className="w-3.5 h-3.5 text-white" />
                       </div>
                     )}
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-xs font-semibold text-gray-900">
                         {userProfile.username}
                       </p>
                     </div>
@@ -401,14 +405,14 @@ export default function PlaceDetailsOverlay({
                 )}
 
                 {hasUserAlreadyAdded && (
-                  <p className="text-xs text-red-600 flex items-center gap-1 bg-red-50 p-2 rounded-lg">
+                  <p className="text-[10px] text-red-600 flex items-center gap-1 bg-red-50 p-1.5 rounded-lg border border-red-200">
                     <span className="font-medium">
                       ⚠️ You have already added this place
                     </span>
                   </p>
                 )}
                 {existingPlace && userProfile && !hasUserAlreadyAdded && (
-                  <p className="text-xs text-purple-600 flex items-center gap-1 bg-purple-50 p-2 rounded-lg">
+                  <p className="text-[10px] text-purple-600 flex items-center gap-1 bg-purple-50 p-1.5 rounded-lg border border-purple-200">
                     <span className="font-medium">
                       ✨ Adding your recommendation to{" "}
                       {existingPlace.recommenders[0].name}&apos;s place
@@ -416,24 +420,24 @@ export default function PlaceDetailsOverlay({
                   </p>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <MessageSquare className="w-4 h-4" />
+                    <label className="flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5">
+                      <MessageSquare className="w-3 h-3" />
                       Caption (optional)
                     </label>
                     <Textarea
                       placeholder="Why do you recommend this place?"
                       value={recommenderCaption}
                       onChange={(e) => setRecommenderCaption(e.target.value)}
-                      className="bg-white resize-none text-sm"
-                      rows={3}
+                      className="bg-white resize-none text-xs border-gray-200"
+                      rows={2}
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <UtensilsCrossed className="w-4 h-4" />
+                    <label className="text-[10px] md:text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <UtensilsCrossed className="w-3 h-3" />
                       Category (optional)
                     </label>
                     <select
@@ -441,7 +445,7 @@ export default function PlaceDetailsOverlay({
                       onChange={(e) =>
                         setSelectedCategory(e.target.value as FoodCategory | "")
                       }
-                      className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm shadow-black/5"
                     >
                       <option value="">Select a category</option>
                       {CATEGORY_OPTIONS.map((opt) => (
@@ -453,20 +457,20 @@ export default function PlaceDetailsOverlay({
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Leaf className="w-4 h-4" />
+                    <label className="text-[10px] md:text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <Leaf className="w-3 h-3" />
                       Dietary Tags (optional)
                     </label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {DIETARY_OPTIONS.map((opt) => (
                         <button
                           key={opt.value}
                           type="button"
                           onClick={() => toggleDietary(opt.value)}
-                          className={`px-3 py-1.5 text-xs rounded-full font-medium transition-all border ${
+                          className={`px-2 py-1 text-[10px] md:text-xs rounded-lg font-medium transition-all duration-200 border ${
                             selectedDietary.includes(opt.value)
-                              ? "bg-green-500 text-white border-green-500 shadow-sm"
-                              : "bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50"
+                              ? "bg-linear-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md shadow-green-600/25"
+                              : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:border-green-300 hover:bg-green-50 hover:shadow-md hover:shadow-black/10"
                           }`}
                         >
                           {opt.label}
@@ -476,11 +480,11 @@ export default function PlaceDetailsOverlay({
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2 pt-1">
                   <Button
                     onClick={() => setShowForm(false)}
                     variant="outline"
-                    className="flex-1 rounded-lg border-gray-200"
+                    className="flex-1 rounded-lg border-gray-200 text-xs py-2 h-auto shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10"
                     disabled={isSaving}
                   >
                     Cancel
@@ -488,15 +492,15 @@ export default function PlaceDetailsOverlay({
                   <Button
                     onClick={handleSubmit}
                     disabled={isSaving || !userProfile || hasUserAlreadyAdded}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex-1 bg-linear-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg text-xs py-2 h-auto shadow-md shadow-blue-600/25 hover:shadow-lg hover:shadow-blue-600/30 disabled:bg-gray-400 disabled:shadow-none transition-all duration-200"
                   >
                     {isSaving ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span className="flex items-center justify-center gap-1.5">
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Saving...
                       </span>
                     ) : hasUserAlreadyAdded ? (
-                      <span className="text-sm">Already Added</span>
+                      <span className="text-xs">Already Added</span>
                     ) : (
                       "Save to Map"
                     )}
@@ -511,9 +515,9 @@ export default function PlaceDetailsOverlay({
                 href={place.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-sm text-gray-700 font-medium border border-gray-200"
+                className="flex items-center justify-center gap-1.5 p-2.5 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200 text-xs text-gray-700 font-medium border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10"
               >
-                <GlobeIcon className="w-4 h-4" />
+                <GlobeIcon className="w-3 h-3" />
                 View on Google Maps
               </a>
             )}

@@ -57,7 +57,7 @@ export default function Globe() {
 
     // Use lower zoom on mobile to show more of the globe
     const isMobile = window.innerWidth < 768;
-    const initialZoom = isMobile ? 1 : 2.5;
+    const initialZoom = isMobile ? 1 : 2.2;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -145,7 +145,7 @@ export default function Globe() {
     if (autoRotate && map.current) {
       // Reset zoom to initial level when rotation restarts
       const isMobile = window.innerWidth < 768;
-      const initialZoom = isMobile ? 1.5 : 2.5;
+      const initialZoom = isMobile ? 1 : 2.2;
       const currentZoom = map.current.getZoom();
       if (currentZoom > 5) {
         map.current.easeTo({ zoom: initialZoom, duration: 1500 });
