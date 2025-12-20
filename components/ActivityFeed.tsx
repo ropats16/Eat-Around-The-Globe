@@ -125,7 +125,7 @@ export default function ActivityFeed() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ delay: index * 0.05 }}
                   onClick={() => handleRecommendationClick(rec.food)}
-                  className="w-full text-left group hover:bg-white/10 p-2 rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-lg shadow-black/20"
+                  className="w-full text-left group hover:bg-white/10 p-2 rounded-lg transition-colors duration-200"
                 >
                   <div className="flex items-start gap-2">
                     {rec.recommender.profilePicture ? (
