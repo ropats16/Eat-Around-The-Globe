@@ -4,18 +4,7 @@ import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useFoodGlobeStore } from "@/lib/store";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  "street-food": "#f59e0b",
-  "fine-dining": "#8b5cf6",
-  traditional: "#10b981",
-  dessert: "#ec4899",
-  drink: "#3b82f6",
-  seafood: "#06b6d4",
-  vegetarian: "#84cc16",
-  "fast-food": "#ef4444",
-  bakery: "#f97316",
-};
+import { getCategoryConfig } from "@/lib/category-config";
 
 export default function Globe() {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -57,13 +46,13 @@ export default function Globe() {
 
     // Use lower zoom on mobile to show more of the globe
     const isMobile = window.innerWidth < 768;
-    const initialZoom = isMobile ? 1 : 2.2;
+    const initialZoom = isMobile ? 1 : 2.5;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/standard",
       projection: { name: "globe" },
-      center: [0, 20],
+      center: [90, 20],
       zoom: initialZoom,
       pitch: 0,
       maxZoom: 18,
@@ -145,7 +134,7 @@ export default function Globe() {
     if (autoRotate && map.current) {
       // Reset zoom to initial level when rotation restarts
       const isMobile = window.innerWidth < 768;
-      const initialZoom = isMobile ? 1 : 2.2;
+      const initialZoom = isMobile ? 1 : 2.5;
       const currentZoom = map.current.getZoom();
       if (currentZoom > 5) {
         map.current.easeTo({ zoom: initialZoom, duration: 1500 });
@@ -215,19 +204,34 @@ export default function Globe() {
         filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
       `;
 
-      // Add SVG with category color (matching MapPin.svg structure with white star)
-      const color = CATEGORY_COLORS[food.category] || "#D05CE4";
+      // Add SVG with category gradient color (matching MapPin.svg structure with white star)
+      // Fallback to 'traditional' if category doesn't exist in config
+      let categoryConfig = getCategoryConfig(food.category);
+      if (!categoryConfig) {
+        console.warn(
+          `Unknown category: ${food.category}, falling back to 'casual dining'`
+        );
+        categoryConfig = getCategoryConfig("casual-dining");
+      }
+      const gradientId = `gradient_${food.id}`;
       innerWrapper.innerHTML = `
         <svg width="40" height="40" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g clip-path="url(#clip0_${food.id})">
-            <path d="M160 20C130.836 20.0331 102.877 31.633 82.2548 52.2548C61.633 72.8766 50.0331 100.836 50 130C50 224.125 150 295.212 154.263 298.188C155.944 299.365 157.947 299.997 160 299.997C162.053 299.997 164.056 299.365 165.737 298.188C170 295.212 270 224.125 270 130C269.967 100.836 258.367 72.8766 237.745 52.2548C217.123 31.633 189.164 20.0331 160 20Z" fill="${color}"/>
-            <path d="M217.444 121.715L193.323 142.529L200.672 173.656C201.077 175.346 200.973 177.118 200.372 178.749C199.771 180.379 198.7 181.795 197.294 182.817C195.889 183.839 194.212 184.422 192.476 184.491C190.74 184.561 189.022 184.115 187.539 183.208L160.47 166.549L133.384 183.208C131.902 184.109 130.186 184.552 128.453 184.479C126.719 184.407 125.046 183.824 123.644 182.802C122.241 181.781 121.173 180.368 120.572 178.74C119.971 177.113 119.865 175.344 120.268 173.656L127.644 142.529L103.522 121.715C102.211 120.582 101.262 119.087 100.795 117.417C100.328 115.748 100.363 113.978 100.896 112.328C101.429 110.678 102.436 109.222 103.792 108.141C105.147 107.06 106.791 106.403 108.518 106.251L140.144 103.7L152.344 74.1753C153.004 72.5662 154.128 71.1899 155.573 70.2212C157.017 69.2526 158.717 68.7354 160.456 68.7354C162.196 68.7354 163.896 69.2526 165.34 70.2212C166.785 71.1899 167.909 72.5662 168.569 74.1753L180.764 103.7L212.389 106.251C214.12 106.397 215.768 107.051 217.129 108.13C218.489 109.21 219.501 110.666 220.038 112.318C220.574 113.97 220.611 115.743 220.144 117.416C219.677 119.088 218.726 120.586 217.412 121.721L217.444 121.715Z" fill="white"/>
-          </g>
           <defs>
+            <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:${categoryConfig.color};stop-opacity:0.85" />
+              <stop offset="100%" style="stop-color:${categoryConfig.color};stop-opacity:1" />
+            </linearGradient>
+            <filter id="shadow_${food.id}" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="${categoryConfig.color}" flood-opacity="0.3"/>
+            </filter>
             <clipPath id="clip0_${food.id}">
               <rect width="320" height="320" fill="white"/>
             </clipPath>
           </defs>
+          <g clip-path="url(#clip0_${food.id})" filter="url(#shadow_${food.id})">
+            <path d="M160 20C130.836 20.0331 102.877 31.633 82.2548 52.2548C61.633 72.8766 50.0331 100.836 50 130C50 224.125 150 295.212 154.263 298.188C155.944 299.365 157.947 299.997 160 299.997C162.053 299.997 164.056 299.365 165.737 298.188C170 295.212 270 224.125 270 130C269.967 100.836 258.367 72.8766 237.745 52.2548C217.123 31.633 189.164 20.0331 160 20Z" fill="url(#${gradientId})"/>
+            <path d="M217.444 121.715L193.323 142.529L200.672 173.656C201.077 175.346 200.973 177.118 200.372 178.749C199.771 180.379 198.7 181.795 197.294 182.817C195.889 183.839 194.212 184.422 192.476 184.491C190.74 184.561 189.022 184.115 187.539 183.208L160.47 166.549L133.384 183.208C131.902 184.109 130.186 184.552 128.453 184.479C126.719 184.407 125.046 183.824 123.644 182.802C122.241 181.781 121.173 180.368 120.572 178.74C119.971 177.113 119.865 175.344 120.268 173.656L127.644 142.529L103.522 121.715C102.211 120.582 101.262 119.087 100.795 117.417C100.328 115.748 100.363 113.978 100.896 112.328C101.429 110.678 102.436 109.222 103.792 108.141C105.147 107.06 106.791 106.403 108.518 106.251L140.144 103.7L152.344 74.1753C153.004 72.5662 154.128 71.1899 155.573 70.2212C157.017 69.2526 158.717 68.7354 160.456 68.7354C162.196 68.7354 163.896 69.2526 165.34 70.2212C166.785 71.1899 167.909 72.5662 168.569 74.1753L180.764 103.7L212.389 106.251C214.12 106.397 215.768 107.051 217.129 108.13C218.489 109.21 219.501 110.666 220.038 112.318C220.574 113.97 220.611 115.743 220.144 117.416C219.677 119.088 218.726 120.586 217.412 121.721L217.444 121.715Z" fill="white"/>
+          </g>
         </svg>
       `;
 
