@@ -12,7 +12,7 @@ export default function LoadingScreen() {
   useEffect(() => {
     const timer = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) return 100; // Stop at 100
+        if (prev >= 200) return 200; // Stop at 200
         return prev + 1;
       });
     }, 50); // Faster updates for smoother animation
