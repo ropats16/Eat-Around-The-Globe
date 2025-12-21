@@ -6,7 +6,6 @@ import {
   X,
   MapPin,
   Star,
-  DollarSign,
   ExternalLink,
   Share2,
   Heart,
@@ -20,28 +19,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { uploadLikeAction } from "@/lib/arweave";
 import { getUserLikeStatus, getPlaceLikeCount } from "@/lib/arweave-query";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  "street-food": "Street Food",
-  "fine-dining": "Fine Dining",
-  traditional: "Traditional",
-  dessert: "Dessert",
-  drink: "Drink",
-  seafood: "Seafood",
-  vegetarian: "Vegetarian",
-  "fast-food": "Fast Food",
-  bakery: "Bakery",
-};
-
-const DIETARY_LABELS: Record<string, string> = {
-  vegan: "Vegan",
-  vegetarian: "Vegetarian",
-  "gluten-free": "Gluten-Free",
-  halal: "Halal",
-  kosher: "Kosher",
-  "dairy-free": "Dairy-Free",
-  "nut-free": "Nut-Free",
-};
+import { getCategoryConfig, getDietaryConfig } from "@/lib/category-config";
 
 export default function DetailPanel() {
   const {
@@ -296,18 +274,65 @@ export default function DetailPanel() {
               </div>
 
               {/* Category & Dietary Tags */}
-              <div className="flex flex-wrap gap-1.5">
-                <span className="px-2 py-1 bg-purple-50 text-purple-700 text-[10px] md:text-xs rounded-lg font-medium border border-purple-200 shadow-sm shadow-black/5">
-                  {CATEGORY_LABELS[selectedFood.category]}
-                </span>
-                {selectedFood.dietaryInfo.map((diet) => (
-                  <span
-                    key={diet}
-                    className="px-2 py-1 bg-green-50 text-green-700 text-[10px] md:text-xs rounded-lg font-medium border border-green-200 shadow-sm shadow-black/5"
-                  >
-                    {DIETARY_LABELS[diet]}
-                  </span>
-                ))}
+              <div className="space-y-3">
+                {/* Category Badge with Icon */}
+                {(() => {
+                  // Fallback to 'Casual Dining' if category doesn't exist in config
+                  let categoryConfig = getCategoryConfig(selectedFood.category);
+                  if (!categoryConfig) {
+                    console.warn(
+                      `Unknown category: ${selectedFood.category}, falling back to 'casual dining'`
+                    );
+                    categoryConfig = getCategoryConfig("casual-dining");
+                  }
+                  const CategoryIcon = categoryConfig.icon;
+                  return (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                        Category:
+                      </p>
+                      <div className="flex items-center">
+                        <span
+                          className={`px-2.5 py-1.5 ${categoryConfig.bgColor} ${categoryConfig.textColor} border ${categoryConfig.borderColor} text-[10px] md:text-xs rounded-lg font-medium shadow-sm ${categoryConfig.shadowColor} flex items-center gap-1.5 w-fit`}
+                        >
+                          <CategoryIcon className="w-3 h-3" />
+                          {categoryConfig.label}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Dietary Options */}
+                {selectedFood.dietaryInfo.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                      Dietary Options:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedFood.dietaryInfo.map((diet) => {
+                        const dietaryConfig = getDietaryConfig(diet);
+                        // Skip if dietary tag doesn't exist in config
+                        if (!dietaryConfig) {
+                          console.warn(
+                            `Unknown dietary tag: ${diet}, skipping`
+                          );
+                          return null;
+                        }
+                        const DietaryIcon = dietaryConfig.icon;
+                        return (
+                          <span
+                            key={diet}
+                            className={`px-2 py-1 ${dietaryConfig.bgColor} ${dietaryConfig.textColor} text-[10px] md:text-xs rounded-lg font-medium border ${dietaryConfig.borderColor} shadow-sm ${dietaryConfig.shadowColor} flex items-center gap-1`}
+                          >
+                            <DietaryIcon className="w-2.5 h-2.5" />
+                            {dietaryConfig.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Divider */}

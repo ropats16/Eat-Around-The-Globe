@@ -22,6 +22,11 @@ import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { Recommender, FoodCategory, DietaryTag } from "@/lib/types";
 import { uploadRecommendation } from "@/lib/arweave";
+import {
+  CATEGORY_OPTIONS,
+  DIETARY_OPTIONS,
+  getDietaryConfig,
+} from "@/lib/category-config";
 
 interface PlaceDetailsOverlayProps {
   place: google.maps.places.PlaceResult | null;
@@ -29,28 +34,6 @@ interface PlaceDetailsOverlayProps {
   onSaveToMap: (recommender: Recommender) => void;
   isSaving?: boolean;
 }
-
-const CATEGORY_OPTIONS: { value: FoodCategory; label: string }[] = [
-  { value: "traditional", label: "Traditional" },
-  { value: "street-food", label: "Street Food" },
-  { value: "fine-dining", label: "Fine Dining" },
-  { value: "fast-food", label: "Fast Food" },
-  { value: "dessert", label: "Dessert" },
-  { value: "bakery", label: "Bakery" },
-  { value: "seafood", label: "Seafood" },
-  { value: "vegetarian", label: "Vegetarian" },
-  { value: "drink", label: "Drinks/Bar" },
-];
-
-const DIETARY_OPTIONS: { value: DietaryTag; label: string }[] = [
-  { value: "vegetarian", label: "Vegetarian" },
-  { value: "vegan", label: "Vegan" },
-  { value: "halal", label: "Halal" },
-  { value: "kosher", label: "Kosher" },
-  { value: "gluten-free", label: "Gluten-Free" },
-  { value: "dairy-free", label: "Dairy-Free" },
-  { value: "nut-free", label: "Nut-Free" },
-];
 
 export default function PlaceDetailsOverlay({
   place,
@@ -77,8 +60,8 @@ export default function PlaceDetailsOverlay({
     if (!place?.types) return "";
     const types = place.types;
     if (types.includes("bakery")) return "bakery";
-    if (types.includes("bar") || types.includes("night_club")) return "drink";
-    if (types.includes("cafe")) return "dessert";
+    if (types.includes("bar") || types.includes("night_club")) return "bar";
+    if (types.includes("cafe")) return "cafe";
     return "";
   }, [place]);
 
@@ -573,23 +556,29 @@ export default function PlaceDetailsOverlay({
                   <div>
                     <label className="text-[10px] md:text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                       <Leaf className="w-3 h-3" />
-                      Dietary Tags (optional)
+                      Dietary Options (optional)
                     </label>
                     <div className="flex flex-wrap gap-1.5">
-                      {DIETARY_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => toggleDietary(opt.value)}
-                          className={`px-2 py-1 text-[10px] md:text-xs rounded-lg font-medium transition-all duration-200 border ${
-                            selectedDietary.includes(opt.value)
-                              ? "bg-linear-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md shadow-green-600/25"
-                              : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:border-green-300 hover:bg-green-50 hover:shadow-md hover:shadow-black/10"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                      {DIETARY_OPTIONS.map((opt) => {
+                        const dietaryConfig = getDietaryConfig(opt.value);
+                        const DietaryIcon = dietaryConfig.icon;
+                        const isSelected = selectedDietary.includes(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => toggleDietary(opt.value)}
+                            className={`px-2 py-1 text-[10px] md:text-xs rounded-lg font-medium transition-all duration-200 border flex items-center gap-1 ${
+                              isSelected
+                                ? `${dietaryConfig.bgColor} ${dietaryConfig.textColor} ${dietaryConfig.borderColor} shadow-md ${dietaryConfig.shadowColor}`
+                                : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:bg-gray-50 hover:shadow-md hover:shadow-black/10"
+                            }`}
+                          >
+                            <DietaryIcon className="w-2.5 h-2.5" />
+                            {opt.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
