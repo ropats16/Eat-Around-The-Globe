@@ -15,6 +15,7 @@ import {
   MessageSquare,
   UtensilsCrossed,
   Leaf,
+  Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,6 +114,7 @@ export default function PlaceDetailsOverlay({
   );
   const [selectedDietary, setSelectedDietary] =
     useState<DietaryTag[]>(detectedDietary);
+  const [currentRecommenderIndex, setCurrentRecommenderIndex] = useState(0);
 
   // Check if current user (by wallet address) has already added this place
   const hasUserAlreadyAdded = useMemo(() => {
@@ -132,10 +134,24 @@ export default function PlaceDetailsOverlay({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, walletAddress]);
 
+  // Auto-rotate recommenders carousel
+  useEffect(() => {
+    if (!existingPlace?.recommenders || existingPlace.recommenders.length <= 1) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCurrentRecommenderIndex((prev) =>
+        prev === existingPlace.recommenders.length - 1 ? 0 : prev + 1
+      );
+    }, 4000); // Rotate every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [existingPlace?.recommenders]);
+
   if (!place) return null;
 
   const photos = place.photos?.slice(0, 3) || [];
-  const priceLevel = place.price_level ? "$".repeat(place.price_level) : null;
 
   const handleSubmit = async () => {
     if (!userProfile || !walletAddress || hasUserAlreadyAdded) {
@@ -262,27 +278,31 @@ export default function PlaceDetailsOverlay({
           <div className="p-3 md:p-4 space-y-3">
             {/* Title and Rating */}
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                 {place.name}
               </h2>
               <div className="flex items-center gap-2">
                 {place.rating && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 rounded-lg border border-yellow-200 shadow-sm shadow-black/5">
-                    <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                    <span className="text-xs font-semibold text-gray-900">
-                      {place.rating}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-yellow-50 rounded-lg border border-yellow-200 shadow-sm shadow-black/5">
+                    <Star className="w-3.5 h-3.5 md:w-4 md:h-4 fill-yellow-500 text-yellow-500" />
+                    <span className="text-xs md:text-sm font-semibold text-gray-900">
+                      {place.rating.toFixed(1)}
                     </span>
                     {place.user_ratings_total && (
-                      <span className="text-[10px] text-gray-500">
+                      <span className="text-[10px] md:text-xs text-gray-500">
                         ({place.user_ratings_total.toLocaleString()})
                       </span>
                     )}
                   </div>
                 )}
-                {priceLevel && (
-                  <span className="px-2 py-1 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5 text-xs text-gray-700 font-medium">
-                    {priceLevel}
-                  </span>
+                {place.price_level && (
+                  <div className="flex items-center gap-0.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5">
+                    {Array.from({ length: place.price_level }).map((_, i) => (
+                      <span key={i} className="text-green-700 text-xs md:text-sm">
+                        $
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -291,8 +311,8 @@ export default function PlaceDetailsOverlay({
             <div className="space-y-2">
               {place.formatted_address && (
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-3 h-3 text-gray-400 shrink-0 mt-0.5" />
-                  <span className="text-xs text-gray-700">
+                  <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 shrink-0 mt-0.5" />
+                  <span className="text-xs md:text-sm text-gray-700">
                     {place.formatted_address}
                   </span>
                 </div>
@@ -300,8 +320,8 @@ export default function PlaceDetailsOverlay({
 
               {place.international_phone_number && (
                 <div className="flex items-center gap-2">
-                  <Phone className="w-3 h-3 text-gray-400 shrink-0" />
-                  <span className="text-xs text-gray-700">
+                  <Phone className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 shrink-0" />
+                  <span className="text-xs md:text-sm text-gray-700">
                     {place.international_phone_number}
                   </span>
                 </div>
@@ -309,12 +329,12 @@ export default function PlaceDetailsOverlay({
 
               {place.website && (
                 <div className="flex items-center gap-2">
-                  <GlobeIcon className="w-3 h-3 text-gray-400 shrink-0" />
+                  <GlobeIcon className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 shrink-0" />
                   <a
                     href={place.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline truncate"
+                    className="text-xs md:text-sm text-blue-600 hover:underline truncate"
                   >
                     {new URL(place.website).hostname}
                   </a>
@@ -323,8 +343,8 @@ export default function PlaceDetailsOverlay({
 
               {place.opening_hours?.weekday_text && (
                 <div className="flex items-start gap-2">
-                  <Clock className="w-3 h-3 text-gray-400 shrink-0 mt-0.5" />
-                  <div className="text-xs text-gray-700">
+                  <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 shrink-0 mt-0.5" />
+                  <div className="text-xs md:text-sm text-gray-700">
                     <details className="cursor-pointer">
                       <summary className="hover:text-gray-900 font-medium">
                         {/* Using deprecated open_now for backwards compatibility */}
@@ -334,7 +354,7 @@ export default function PlaceDetailsOverlay({
                           <span className="text-red-600">Closed</span>
                         )}
                       </summary>
-                      <ul className="mt-1.5 space-y-0.5 text-[10px] text-gray-600">
+                      <ul className="mt-1.5 space-y-0.5 text-[10px] md:text-xs text-gray-600">
                         {place.opening_hours.weekday_text.map((day, index) => (
                           <li key={index}>{day}</li>
                         ))}
@@ -347,6 +367,100 @@ export default function PlaceDetailsOverlay({
 
             {/* Divider */}
             <div className="border-t border-gray-200"></div>
+
+            {/* Existing Recommendations Carousel */}
+            {existingPlace?.recommenders && existingPlace.recommenders.length > 0 && (() => {
+              // Ensure valid index
+              const validIndex = Math.min(
+                currentRecommenderIndex,
+                existingPlace.recommenders.length - 1
+              );
+              const currentRecommender = existingPlace.recommenders[validIndex];
+
+              // Find the original recommender (oldest timestamp)
+              const originalRecommender = existingPlace.recommenders.reduce(
+                (oldest, current) =>
+                  new Date(current.dateRecommended).getTime() <
+                  new Date(oldest.dateRecommended).getTime()
+                    ? current
+                    : oldest
+              );
+
+              const isOriginal =
+                currentRecommender?.walletAddress ===
+                originalRecommender?.walletAddress;
+
+              return (
+                <div className="p-3 bg-linear-to-br from-fuchsia-50/10 to-fuchsia-100/30 rounded-xl border border-fuchsia-200 shadow-sm shadow-black/5">
+                  <h3 className="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <Award className="w-3.5 h-3.5 md:w-4 md:h-4 text-fuchsia-600" />
+                    Already recommended by {existingPlace.recommenders.length}{" "}
+                    {existingPlace.recommenders.length === 1 ? "person" : "people"}
+                  </h3>
+
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentRecommenderIndex}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex items-start gap-3"
+                    >
+                      {currentRecommender.profilePicture ? (
+                        <Image
+                          src={currentRecommender.profilePicture}
+                          alt={currentRecommender.name}
+                          width={48}
+                          height={48}
+                          className="w-12 h-12 rounded-xl object-cover shadow-md shadow-fuchsia-600/20"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-linear-to-br from-fuchsia-200 to-fuchsia-400 flex items-center justify-center shadow-md shadow-fuchsia-600/20">
+                          <span className="text-white font-bold text-lg">
+                            {currentRecommender.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm md:text-base font-bold text-gray-900">
+                            {currentRecommender.name}
+                          </p>
+                          {isOriginal && (
+                            <span className="px-2 py-0.5 bg-fuchsia-200 text-fuchsia-800 text-[10px] md:text-xs rounded-md font-medium shadow-sm shadow-fuchsia-600/10">
+                              Original
+                            </span>
+                          )}
+                        </div>
+                        {currentRecommender.caption && (
+                          <p className="text-xs md:text-sm text-gray-600 mt-1 italic leading-relaxed">
+                            &ldquo;{currentRecommender.caption}&rdquo;
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Carousel dots */}
+                  {existingPlace.recommenders.length > 1 && (
+                    <div className="flex justify-center gap-1.5 mt-4">
+                      {existingPlace.recommenders.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentRecommenderIndex(idx)}
+                          className={`h-1.5 rounded-full transition-all duration-200 ${
+                            idx === currentRecommenderIndex
+                              ? "bg-fuchsia-300/50 w-6 shadow-sm shadow-fuchsia-600/30"
+                              : "bg-fuchsia-200 w-1.5 hover:bg-fuchsia-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Action Button / Form */}
             {!showForm ? (

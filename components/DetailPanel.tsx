@@ -59,6 +59,7 @@ export default function DetailPanel() {
   const [likeCount, setLikeCount] = useState(0);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentRecommenderIndex, setCurrentRecommenderIndex] = useState(0);
 
   // Fetch like status when place changes
   useEffect(() => {
@@ -90,8 +91,24 @@ export default function DetailPanel() {
       setIsLiked(false);
       setLikeCount(0);
       setCurrentImageIndex(0);
+      setCurrentRecommenderIndex(0);
     }
   }, [isDetailPanelOpen]);
+
+  // Auto-rotate recommenders carousel
+  useEffect(() => {
+    if (!selectedFood?.recommenders || selectedFood.recommenders.length <= 1) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCurrentRecommenderIndex((prev) =>
+        prev === selectedFood.recommenders.length - 1 ? 0 : prev + 1
+      );
+    }, 4000); // Rotate every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [selectedFood?.recommenders]);
 
   if (!selectedFood) return null;
 
@@ -181,341 +198,356 @@ export default function DetailPanel() {
   return (
     <AnimatePresence>
       {isDetailPanelOpen && selectedFood && (
-        <div
+        <motion.div
           key={`detail-panel-${
             selectedFood.id || selectedFood.placeId || "default"
           }`}
-          className="fixed top-20 md:top-6 right-4 md:right-12 w-[calc(100%-2rem)] md:w-96 max-h-[calc(100dvh-6rem)] md:max-h-[calc(100vh-3rem)] z-50 pointer-events-auto"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="fixed bottom-4 md:bottom-auto md:top-44 right-4 md:right-12 w-[calc(100%-2rem)] md:w-96 bg-white rounded-2xl shadow-xl shadow-black/10 border border-gray-100 overflow-hidden max-h-[calc(100dvh-14rem)] md:max-h-[calc(100vh-13rem)] flex flex-col z-30 pointer-events-auto hover:shadow-2xl hover:shadow-black/15 transition-shadow duration-200"
         >
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="bg-white rounded-3xl shadow-xl shadow-black/10 border border-gray-100 overflow-hidden max-h-full flex flex-col hover:shadow-2xl hover:shadow-black/15 transition-shadow duration-200"
+          {/* Close Button */}
+          <button
+            onClick={closeDetailPanel}
+            className="absolute top-2 right-2 z-20 w-7 h-7 bg-white/95 backdrop-blur-sm rounded-lg shadow-sm shadow-black/10 flex items-center justify-center hover:bg-gray-100 hover:shadow-md hover:shadow-black/15 transition-all duration-200"
           >
-            {/* Close Button */}
-            <button
-              onClick={closeDetailPanel}
-              className="absolute top-4 right-4 z-20 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg shadow-black/10 flex items-center justify-center hover:bg-gray-100 hover:scale-110 transition-all duration-200"
-            >
-              <X className="w-4 h-4 text-gray-700" />
-            </button>
+            <X className="w-3.5 h-3.5 text-gray-700" />
+          </button>
 
-            {/* Scrollable Content */}
-            <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0">
-              {/* Images */}
-              {selectedFood.images.length > 0 && (
-                <div className="relative h-56 bg-gray-100">
-                  <Image
-                    src={selectedFood.images[currentImageIndex]}
-                    alt={selectedFood.name}
-                    fill
-                    className="object-cover"
-                    priority
-                  />
-                  {selectedFood.images.length > 1 && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                      {selectedFood.images.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setCurrentImageIndex(idx)}
-                          className={`h-2 rounded-full transition-all ${
-                            idx === currentImageIndex
-                              ? "bg-white w-6 shadow-md"
-                              : "bg-white/70 w-2"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Content */}
-              <div className="p-4 md:p-6 space-y-4 md:space-y-5">
-                {/* Title & Location */}
-                <div>
-                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 md:mb-3">
-                    {selectedFood.name}
-                  </h2>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <span className="text-xl">
-                      {getFlagEmoji(selectedFood.countryCode)}
-                    </span>
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">
-                      {selectedFood.city}, {selectedFood.country}
-                    </span>
+          {/* Scrollable Content */}
+          <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0">
+            {/* Images */}
+            {selectedFood.images.length > 0 && (
+              <div className="relative h-56 bg-gray-100">
+                <Image
+                  src={selectedFood.images[currentImageIndex]}
+                  alt={selectedFood.name}
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                {selectedFood.images.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {selectedFood.images.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        className={`h-2 rounded-full transition-all ${
+                          idx === currentImageIndex
+                            ? "bg-white w-6 shadow-md"
+                            : "bg-white/70 w-2"
+                        }`}
+                      />
+                    ))}
                   </div>
-                </div>
+                )}
+              </div>
+            )}
 
-                {/* Rating & Price */}
-                <div className="flex items-center gap-4">
-                  {selectedFood.rating && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 rounded-full border border-yellow-200">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm font-semibold text-gray-900">
-                        {selectedFood.rating.toFixed(1)}
-                      </span>
-                      {selectedFood.totalReviews && (
-                        <span className="text-xs text-gray-500">
-                          ({selectedFood.totalReviews})
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {selectedFood.priceRange && (
-                    <div className="flex items-center gap-0.5 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
-                      {Array.from({ length: selectedFood.priceRange }).map(
-                        (_, i) => (
-                          <DollarSign
-                            key={i}
-                            className="w-3.5 h-3.5 text-green-600"
-                          />
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Category & Dietary Tags */}
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-xs rounded-full font-medium border border-purple-200">
-                    {CATEGORY_LABELS[selectedFood.category]}
+            {/* Content */}
+            <div className="p-3 md:p-4 space-y-3">
+              {/* Title & Location */}
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                  {selectedFood.name}
+                </h2>
+                <div className="flex items-center gap-1.5 text-gray-600">
+                  <span className="text-lg md:text-xl">
+                    {getFlagEmoji(selectedFood.countryCode)}
                   </span>
-                  {selectedFood.dietaryInfo.map((diet) => (
-                    <span
-                      key={diet}
-                      className="px-3 py-1.5 bg-green-50 text-green-700 text-xs rounded-full font-medium border border-green-200"
-                    >
-                      {DIETARY_LABELS[diet]}
+                  <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400" />
+                  <span className="text-xs md:text-sm">
+                    {selectedFood.city}, {selectedFood.country}
+                  </span>
+                </div>
+              </div>
+
+              {/* Rating & Price */}
+              <div className="flex items-center gap-2">
+                {selectedFood.rating && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-yellow-50 rounded-lg border border-yellow-200 shadow-sm shadow-black/5">
+                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                    <span className="text-xs md:text-sm font-semibold text-gray-900">
+                      {selectedFood.rating.toFixed(1)}
                     </span>
-                  ))}
-                </div>
+                    {selectedFood.totalReviews && (
+                      <span className="text-[10px] md:text-xs text-gray-500">
+                        ({selectedFood.totalReviews})
+                      </span>
+                    )}
+                  </div>
+                )}
+                {selectedFood.priceRange && (
+                  <div className="flex items-center gap-0.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5">
+                    {Array.from({ length: selectedFood.priceRange }).map(
+                      (_, i) => (
+                        <span
+                          key={i}
+                          className="text-green-700 text-xs md:text-sm"
+                        >
+                          $
+                        </span>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
 
-                {/* Divider */}
-                <div className="border-t border-gray-200"></div>
+              {/* Category & Dietary Tags */}
+              <div className="flex flex-wrap gap-1.5">
+                <span className="px-2 py-1 bg-purple-50 text-purple-700 text-[10px] md:text-xs rounded-lg font-medium border border-purple-200 shadow-sm shadow-black/5">
+                  {CATEGORY_LABELS[selectedFood.category]}
+                </span>
+                {selectedFood.dietaryInfo.map((diet) => (
+                  <span
+                    key={diet}
+                    className="px-2 py-1 bg-green-50 text-green-700 text-[10px] md:text-xs rounded-lg font-medium border border-green-200 shadow-sm shadow-black/5"
+                  >
+                    {DIETARY_LABELS[diet]}
+                  </span>
+                ))}
+              </div>
 
-                {/* Description */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-500" />
-                    About
-                  </h3>
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {selectedFood.description}
-                  </p>
-                </div>
+              {/* Divider */}
+              <div className="border-t border-gray-200"></div>
 
-                {/* Recommender Info */}
-                {selectedFood.recommenders &&
-                  selectedFood.recommenders.length > 0 && (
-                    <div className="p-4 bg-linear-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <Award className="w-4 h-4 text-purple-600" />
+              {/* Description */}
+              <div>
+                <h3 className="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  {/* <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-500" /> */}
+                  About
+                </h3>
+                <p className="text-sm md:text-base text-gray-700 leading-relaxed">
+                  {selectedFood.description}
+                </p>
+              </div>
+
+              {/* Recommender Info - Carousel */}
+              {selectedFood.recommenders &&
+                selectedFood.recommenders.length > 0 &&
+                (() => {
+                  // Ensure valid index
+                  const validIndex = Math.min(
+                    currentRecommenderIndex,
+                    selectedFood.recommenders.length - 1
+                  );
+                  const currentRecommender =
+                    selectedFood.recommenders[validIndex];
+
+                  // Find the original recommender (oldest timestamp)
+                  const originalRecommender = selectedFood.recommenders.reduce(
+                    (oldest, current) =>
+                      new Date(current.dateRecommended).getTime() <
+                      new Date(oldest.dateRecommended).getTime()
+                        ? current
+                        : oldest
+                  );
+
+                  const isOriginal =
+                    currentRecommender?.walletAddress ===
+                    originalRecommender?.walletAddress;
+
+                  return (
+                    <div className="p-3 bg-linear-to-br from-fuchsia-50/10 to-fuchsia-100/30 rounded-xl border border-fuchsia-200 shadow-sm shadow-black/5">
+                      <h3 className="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <Award className="w-3.5 h-3.5 md:w-4 md:h-4 text-fuchsia-600" />
                         Recommended by {selectedFood.recommenders.length}{" "}
                         {selectedFood.recommenders.length === 1
                           ? "person"
                           : "people"}
                       </h3>
-                      <div className="space-y-3">
-                        {/* First recommender (original) - shown prominently */}
-                        {selectedFood.recommenders.map((recommender, idx) => (
-                          <div
-                            key={idx}
-                            className={`flex items-start gap-3 ${
-                              idx > 0 ? "pt-3 border-t border-purple-200" : ""
-                            }`}
-                          >
-                            {recommender.profilePicture ? (
-                              <Image
-                                src={recommender.profilePicture}
-                                alt={recommender.name}
-                                width={idx === 0 ? 48 : 40}
-                                height={idx === 0 ? 48 : 40}
-                                className={`${
-                                  idx === 0 ? "w-12 h-12" : "w-10 h-10"
-                                } rounded-full object-cover ring-2 ${
-                                  idx === 0
-                                    ? "ring-purple-400"
-                                    : "ring-purple-200"
-                                }`}
-                              />
-                            ) : (
-                              <div
-                                className={`${
-                                  idx === 0 ? "w-12 h-12" : "w-10 h-10"
-                                } rounded-full bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center ring-2 ${
-                                  idx === 0
-                                    ? "ring-purple-400"
-                                    : "ring-purple-200"
-                                }`}
-                              >
-                                <span
-                                  className={`text-white font-bold ${
-                                    idx === 0 ? "text-lg" : "text-base"
-                                  }`}
-                                >
-                                  {recommender.name.charAt(0).toUpperCase()}
+
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={currentRecommenderIndex}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          transition={{ duration: 0.3 }}
+                          className="flex items-start gap-3"
+                        >
+                          {currentRecommender.profilePicture ? (
+                            <Image
+                              src={currentRecommender.profilePicture}
+                              alt={currentRecommender.name}
+                              width={48}
+                              height={48}
+                              className="w-12 h-12 rounded-xl object-cover shadow-md shadow-fuchsia-600/20"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-xl bg-linear-to-br from-fuchsia-200 to-fuchsia-400 flex items-center justify-center shadow-md shadow-fuchsia-600/20">
+                              <span className="text-white font-bold text-lg">
+                                {currentRecommender.name
+                                  .charAt(0)
+                                  .toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm md:text-base font-bold text-gray-900">
+                                {currentRecommender.name}
+                              </p>
+                              {isOriginal && (
+                                <span className="px-2 py-0.5 bg-fuchsia-200 text-fuchsia-800 text-[10px] md:text-xs rounded-md font-medium shadow-sm shadow-fuchsia-600/10">
+                                  Original
                                 </span>
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p
-                                  className={`${
-                                    idx === 0 ? "font-bold" : "font-semibold"
-                                  } text-gray-900`}
-                                >
-                                  {recommender.name}
-                                </p>
-                                {idx === 0 && (
-                                  <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-medium">
-                                    Original
-                                  </span>
-                                )}
-                              </div>
-                              {recommender.caption && (
-                                <p className="text-sm text-gray-600 mt-1 italic">
-                                  &ldquo;{recommender.caption}&rdquo;
-                                </p>
                               )}
                             </div>
+                            {currentRecommender.caption && (
+                              <p className="text-xs md:text-sm text-gray-600 mt-1 italic leading-relaxed">
+                                &ldquo;{currentRecommender.caption}&rdquo;
+                              </p>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                        </motion.div>
+                      </AnimatePresence>
+
+                      {/* Carousel dots */}
+                      {selectedFood.recommenders.length > 1 && (
+                        <div className="flex justify-center gap-1.5 mt-4">
+                          {selectedFood.recommenders.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setCurrentRecommenderIndex(idx)}
+                              className={`h-1.5 rounded-full transition-all duration-200 ${
+                                idx === currentRecommenderIndex
+                                  ? "bg-fuchsia-300/50 w-6 shadow-sm shadow-fuchsia-600/30"
+                                  : "bg-fuchsia-200 w-1.5 hover:bg-fuchsia-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+              {/* Additional Info */}
+              {(selectedFood.address ||
+                selectedFood.phone ||
+                selectedFood.isOpenNow !== undefined) && (
+                <div className="space-y-2">
+                  {selectedFood.address && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 mt-0.5 shrink-0" />
+                      <span className="text-xs md:text-sm text-gray-700">
+                        {selectedFood.address}
+                      </span>
                     </div>
                   )}
-
-                {/* Additional Info */}
-                {(selectedFood.address ||
-                  selectedFood.phone ||
-                  selectedFood.isOpenNow !== undefined) && (
-                  <div className="space-y-3">
-                    {selectedFood.address && (
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                        <span className="text-sm text-gray-700">
-                          {selectedFood.address}
-                        </span>
-                      </div>
-                    )}
-                    {selectedFood.phone && (
-                      <div className="flex items-center gap-3">
-                        <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                        <span className="text-sm text-gray-700">
-                          {selectedFood.phone}
-                        </span>
-                      </div>
-                    )}
-                    {selectedFood.isOpenNow !== undefined && (
-                      <div className="flex items-center gap-3">
-                        <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-                        <span
-                          className={`text-sm font-medium ${
-                            selectedFood.isOpenNow
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {selectedFood.isOpenNow ? "Open now" : "Closed"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Fun Facts */}
-                {selectedFood.funFacts && selectedFood.funFacts.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                      Fun Facts
-                    </h3>
-                    <ul className="space-y-2">
-                      {selectedFood.funFacts.map((fact, idx) => (
-                        <li
-                          key={idx}
-                          className="text-sm text-gray-700 flex items-start gap-2"
-                        >
-                          <span className="text-purple-500 mt-1">•</span>
-                          <span>{fact}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* External Links */}
-                {selectedFood.externalLinks && (
-                  <div className="space-y-2">
-                    {selectedFood.externalLinks.restaurant && (
-                      <a
-                        href={selectedFood.externalLinks.restaurant}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:shadow-md shadow-black/5 border border-gray-200 hover:scale-[1.02]"
+                  {selectedFood.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 shrink-0" />
+                      <span className="text-xs md:text-sm text-gray-700">
+                        {selectedFood.phone}
+                      </span>
+                    </div>
+                  )}
+                  {selectedFood.isOpenNow !== undefined && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 shrink-0" />
+                      <span
+                        className={`text-xs md:text-sm font-medium ${
+                          selectedFood.isOpenNow
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
                       >
-                        <ExternalLink className="w-4 h-4 text-purple-600" />
-                        <span className="text-sm text-gray-900 font-medium">
-                          Visit Website
-                        </span>
-                      </a>
-                    )}
-                    {selectedFood.externalLinks.wiki && (
-                      <a
-                        href={selectedFood.externalLinks.wiki}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:shadow-md shadow-black/5 border border-gray-200 hover:scale-[1.02]"
-                      >
-                        <ExternalLink className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-gray-900 font-medium">
-                          View on Maps
-                        </span>
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                {/* Divider */}
-                <div className="border-t border-gray-200"></div>
-
-                {/* Actions */}
-                <div className="flex gap-2 md:gap-3">
-                  <button
-                    onClick={handleLike}
-                    disabled={isLikeLoading}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 md:py-3 rounded-lg transition-all font-medium text-xs md:text-sm border ${
-                      isLiked
-                        ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
-                        : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50"
-                    } ${isLikeLoading ? "opacity-70 cursor-not-allowed" : ""}`}
-                  >
-                    {isLikeLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Heart
-                        className={`w-4 h-4 ${isLiked ? "fill-white" : ""}`}
-                      />
-                    )}
-                    <span>
-                      {isLiked ? "Liked" : "Like"}
-                      {likeCount > 0 && ` (${likeCount})`}
-                    </span>
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 md:py-3 bg-white hover:bg-gray-50 rounded-lg transition-colors text-gray-700 font-medium text-xs md:text-sm border border-gray-200"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span>Share</span>
-                  </button>
+                        {selectedFood.isOpenNow ? "Open now" : "Closed"}
+                      </span>
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* Fun Facts */}
+              {selectedFood.funFacts && selectedFood.funFacts.length > 0 && (
+                <div>
+                  <h3 className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                    Fun Facts
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {selectedFood.funFacts.map((fact, idx) => (
+                      <li
+                        key={idx}
+                        className="text-xs text-gray-700 flex items-start gap-1.5"
+                      >
+                        <span className="text-purple-500 mt-0.5">•</span>
+                        <span>{fact}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* External Links */}
+              {selectedFood.externalLinks && (
+                <div className="space-y-1.5">
+                  {selectedFood.externalLinks.restaurant && (
+                    <a
+                      href={selectedFood.externalLinks.restaurant}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 p-2.5 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200 text-xs text-gray-700 font-medium border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10"
+                    >
+                      <ExternalLink className="w-3 h-3 text-purple-600" />
+                      <span>Visit Website</span>
+                    </a>
+                  )}
+                  {selectedFood.externalLinks.wiki && (
+                    <a
+                      href={selectedFood.externalLinks.wiki}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 p-2.5 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200 text-xs text-gray-700 font-medium border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10"
+                    >
+                      <ExternalLink className="w-3 h-3 text-blue-600" />
+                      <span>View on Maps</span>
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="border-t border-gray-200"></div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleLike}
+                  disabled={isLikeLoading}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg transition-all duration-200 font-medium text-xs border ${
+                    isLiked
+                      ? "bg-linear-to-br from-red-500 to-red-600 text-white border-red-500 hover:from-red-600 hover:to-red-700 shadow-md shadow-red-600/25"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10"
+                  } ${isLikeLoading ? "opacity-70 cursor-not-allowed" : ""}`}
+                >
+                  {isLikeLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Heart
+                      className={`w-3.5 h-3.5 ${isLiked ? "fill-white" : ""}`}
+                    />
+                  )}
+                  <span>
+                    {isLiked ? "Liked" : "Like"}
+                    {likeCount > 0 && ` (${likeCount})`}
+                  </span>
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200 text-gray-700 font-medium text-xs border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Share</span>
+                </button>
               </div>
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       )}
 
       {/* Custom scrollbar styles */}
