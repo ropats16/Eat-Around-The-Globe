@@ -43,22 +43,28 @@ export interface FoodPlace {
 export type FoodCategory =
   | "street-food"
   | "fine-dining"
+  | "casual-dining"
   | "traditional"
-  | "dessert"
-  | "drink"
-  | "seafood"
-  | "vegetarian"
   | "fast-food"
-  | "bakery";
+  | "cafe"
+  | "bakery"
+  | "dessert"
+  | "bar"
+  | "breakfast"
+  | "market";
 
 export type DietaryTag =
-  | "vegan"
   | "vegetarian"
-  | "gluten-free"
+  | "vegan"
   | "halal"
   | "kosher"
+  | "gluten-free"
   | "dairy-free"
-  | "nut-free";
+  | "nut-free"
+  | "pescatarian"
+  | "organic"
+  | "keto"
+  | "low-carb";
 
 export type Continent =
   | "all"
