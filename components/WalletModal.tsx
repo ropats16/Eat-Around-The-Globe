@@ -18,7 +18,7 @@ const WALLET_OPTIONS = [
   {
     id: "walletconnect" as const,
     name: "WalletConnect",
-    description: "Ethereum, Solana & More",
+    description: "ETH, SOL, etc.",
     icon: "/wallets/WalletConnect.svg",
     bgColor: "bg-[#3396FF]",
     hoverBg: "hover:bg-[#E8F4FF]",
@@ -447,20 +447,19 @@ export default function WalletModal() {
                         `}
                         >
                           {wallet.name}
-                          {wallet.id === "arweave" ||
-                            (wallet.id === "phantom" && (
-                              <span
-                                className={`text-sm font-medium
+                          {/* {wallet.id === "arweave" && ( */}
+                          <span
+                            className={`text-sm font-medium
                               ${
                                 isHovered && !isDisabledOnMobile
                                   ? "text-white/90"
-                                  : "text-gray-400"
+                                  : "text-gray-400/50"
                               }`}
-                              >
-                                {" "}
-                                ({wallet.description})
-                              </span>
-                            ))}
+                          >
+                            {" "}
+                            ({wallet.description})
+                          </span>
+                          {/* )} */}
                         </span>
 
                         {/* Mobile/Desktop indicator */}
