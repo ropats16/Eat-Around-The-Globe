@@ -270,7 +270,7 @@ export default function Sidebar() {
                 {recommenders.map((rec) => (
                   <div
                     key={rec.walletAddress}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10 transition-shadow duration-200"
+                    className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10 transition-shadow duration-200 hover:cursor-default"
                   >
                     {rec.profilePicture ? (
                       <div className="w-5 h-5 rounded-md overflow-hidden shadow-sm shadow-black/10">
@@ -310,7 +310,7 @@ export default function Sidebar() {
               {countries.map((c) => (
                 <div
                   key={c.countryCode}
-                  className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10 transition-shadow duration-200"
+                  className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10 transition-shadow duration-200 hover:cursor-default"
                 >
                   <span className="text-base">
                     {getFlagEmoji(c.countryCode)}
@@ -340,7 +340,7 @@ export default function Sidebar() {
                   <button
                     key={cat.value}
                     onClick={() => toggleCategory(cat.value)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-all duration-200 border ${
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-all duration-200 border hover:cursor-pointer ${
                       isActive
                         ? `${categoryConfig.bgColor} ${categoryConfig.textColor} ${categoryConfig.borderColor} shadow-md ${categoryConfig.shadowColor}`
                         : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:bg-gray-50 hover:shadow-md hover:shadow-black/10"
@@ -368,7 +368,7 @@ export default function Sidebar() {
                   <button
                     key={diet.value}
                     onClick={() => toggleDietary(diet.value)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-all duration-200 border ${
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-all duration-200 border hover:cursor-pointer ${
                       isActive
                         ? `${dietaryConfig.bgColor} ${dietaryConfig.textColor} ${dietaryConfig.borderColor} shadow-md ${dietaryConfig.shadowColor}`
                         : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:bg-gray-50 hover:shadow-md hover:shadow-black/10"
