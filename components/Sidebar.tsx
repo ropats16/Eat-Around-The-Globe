@@ -3,53 +3,33 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useFoodGlobeStore } from "@/lib/store";
-import {
-  Share2,
-  RotateCw,
-  Pause,
-  Coffee,
-  IceCream,
-  Pizza,
-  Fish,
-  Croissant,
-  Salad,
-  Sparkles,
-  ShieldCheck,
-  Wheat,
-  Milk,
-  Nut,
-  LucideIcon,
-  UtensilsCrossed,
-  Leaf,
-} from "lucide-react";
+import { Share2, RotateCw, Pause, LucideIcon } from "lucide-react";
 import { FoodCategory, DietaryTag } from "@/lib/types";
 import Image from "next/image";
+import {
+  CATEGORY_CONFIG,
+  DIETARY_CONFIG,
+  getCategoryConfig,
+  getDietaryConfig,
+} from "@/lib/category-config";
 
-const CATEGORIES: { value: FoodCategory; label: string; icon: LucideIcon }[] = [
-  { value: "street-food", label: "Street Food", icon: Pizza },
-  { value: "fine-dining", label: "Fine Dining", icon: Sparkles },
-  { value: "traditional", label: "Traditional", icon: UtensilsCrossed },
-  { value: "dessert", label: "Dessert", icon: IceCream },
-  { value: "drink", label: "Drink", icon: Coffee },
-  { value: "seafood", label: "Seafood", icon: Fish },
-  { value: "vegetarian", label: "Vegetarian", icon: Salad },
-  { value: "fast-food", label: "Fast Food", icon: Pizza },
-  { value: "bakery", label: "Bakery", icon: Croissant },
-];
+// Convert config to sidebar format
+const CATEGORIES: { value: FoodCategory; label: string; icon: LucideIcon }[] =
+  Object.values(CATEGORY_CONFIG).map((config) => ({
+    value: config.value,
+    label: config.label,
+    icon: config.icon,
+  }));
 
 const DIETARY_OPTIONS: {
   value: DietaryTag;
   label: string;
   icon: LucideIcon;
-}[] = [
-  { value: "vegan", label: "Vegan", icon: Leaf },
-  { value: "vegetarian", label: "Vegetarian", icon: Salad },
-  { value: "gluten-free", label: "Gluten-Free", icon: Wheat },
-  { value: "halal", label: "Halal", icon: ShieldCheck },
-  { value: "kosher", label: "Kosher", icon: ShieldCheck },
-  { value: "dairy-free", label: "Dairy-Free", icon: Milk },
-  { value: "nut-free", label: "Nut-Free", icon: Nut },
-];
+}[] = Object.values(DIETARY_CONFIG).map((config) => ({
+  value: config.value,
+  label: config.label,
+  icon: config.icon,
+}));
 
 export default function Sidebar() {
   const {
@@ -353,7 +333,8 @@ export default function Sidebar() {
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {CATEGORIES.map((cat) => {
-                const Icon = cat.icon;
+                const categoryConfig = getCategoryConfig(cat.value);
+                const Icon = categoryConfig.icon;
                 const isActive = filters.categories.includes(cat.value);
                 return (
                   <button
@@ -361,8 +342,8 @@ export default function Sidebar() {
                     onClick={() => toggleCategory(cat.value)}
                     className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-all duration-200 border ${
                       isActive
-                        ? "bg-linear-to-br from-orange-400 to-orange-600 text-white border-orange-500 shadow-md shadow-orange-600/25"
-                        : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:border-orange-300 hover:bg-orange-50 hover:shadow-md hover:shadow-black/10"
+                        ? `${categoryConfig.bgColor} ${categoryConfig.textColor} ${categoryConfig.borderColor} shadow-md ${categoryConfig.shadowColor}`
+                        : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:bg-gray-50 hover:shadow-md hover:shadow-black/10"
                     }`}
                   >
                     <Icon className="w-3 h-3" />
@@ -380,7 +361,8 @@ export default function Sidebar() {
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {DIETARY_OPTIONS.map((diet) => {
-                const Icon = diet.icon;
+                const dietaryConfig = getDietaryConfig(diet.value);
+                const Icon = dietaryConfig.icon;
                 const isActive = filters.dietaryInfo.includes(diet.value);
                 return (
                   <button
@@ -388,8 +370,8 @@ export default function Sidebar() {
                     onClick={() => toggleDietary(diet.value)}
                     className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-all duration-200 border ${
                       isActive
-                        ? "bg-linear-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md shadow-green-600/25"
-                        : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:border-green-300 hover:bg-green-50 hover:shadow-md hover:shadow-black/10"
+                        ? `${dietaryConfig.bgColor} ${dietaryConfig.textColor} ${dietaryConfig.borderColor} shadow-md ${dietaryConfig.shadowColor}`
+                        : "bg-white text-gray-700 border-gray-200 shadow-sm shadow-black/5 hover:bg-gray-50 hover:shadow-md hover:shadow-black/10"
                     }`}
                   >
                     <Icon className="w-3 h-3" />
