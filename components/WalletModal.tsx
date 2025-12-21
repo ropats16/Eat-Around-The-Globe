@@ -39,6 +39,19 @@ const WALLET_OPTIONS = [
     supportsAppKit: false,
     desktopOnly: true,
   },
+
+  {
+    id: "phantom" as const,
+    name: "Phantom",
+    description: "Coming Soon",
+    icon: "/wallets/Phantom-Icon_Transparent_Purple.svg",
+    bgColor: "bg-[#AB9FF2]",
+    hoverBg: "hover:bg-[#F0EBFF]",
+    ringColor: "ring-[#AB9FF2]",
+    installUrl: "https://phantom.app/",
+    supportsAppKit: false,
+    desktopOnly: false,
+  },
 ];
 
 export default function WalletModal() {
@@ -178,13 +191,15 @@ export default function WalletModal() {
     closeWalletModal,
   ]);
 
-  const handleConnect = async (walletId: "arweave" | "walletconnect") => {
+  const handleConnect = async (
+    walletId: "arweave" | "phantom" | "walletconnect"
+  ) => {
     console.log(`🚀 [CONNECT CLICK] User clicked: ${walletId}`);
     const wallet = WALLET_OPTIONS.find((w) => w.id === walletId);
 
-    // Check if trying to use Wander on mobile
+    // Check if trying to use desktop-only wallet on mobile
     if (wallet?.desktopOnly && isMobile) {
-      alert("Wander wallet is only available on desktop browsers.");
+      alert(`${wallet.name} wallet is only available on desktop browsers.`);
       return;
     }
 
@@ -197,6 +212,11 @@ export default function WalletModal() {
         // Arweave uses direct extension connection
         console.log("🔗 [ARWEAVE] Connecting to Wander...");
         await connectArweave();
+        closeWalletModal();
+      } else if (walletId === "phantom") {
+        // Phantom uses direct Solana wallet connection
+        console.log("🔗 [PHANTOM] Connecting to Phantom...");
+        await connectPhantom();
         closeWalletModal();
       } else if (walletId === "walletconnect") {
         // WalletConnect opens AppKit modal with filtered wallet options
@@ -253,6 +273,66 @@ export default function WalletModal() {
     setWallet("arweave", address);
     setIsConnecting(false);
     setConnectingWallet(null);
+  };
+
+  const connectPhantom = async () => {
+    console.log("🟣 Connecting to Phantom...");
+
+    // Detect if we're on Brave mobile (Brave blocks Phantom deep links)
+    const isBraveMobile =
+      isMobile &&
+      // @ts-expect-error - brave is not in navigator types
+      (navigator.brave?.isBrave || /Brave/i.test(navigator.userAgent));
+
+    if (isBraveMobile) {
+      alert(
+        "Phantom is not supported in Brave mobile browser. Please try Safari, Chrome, or the in-app browser within the Phantom app."
+      );
+      setIsConnecting(false);
+      setConnectingWallet(null);
+      return;
+    }
+
+    // Check if Phantom is available (desktop extension or in-app browser)
+    if (window.solana?.isPhantom) {
+      console.log("✅ Phantom extension detected");
+
+      try {
+        // Connect to Phantom
+        const response = await window.solana.connect();
+        const address = response.publicKey.toString();
+        console.log("✅ Connected to Phantom:", address);
+
+        // Set wallet with the provider for signing
+        setWallet("solana", address, window.solana);
+        setIsConnecting(false);
+        setConnectingWallet(null);
+      } catch (error) {
+        console.error("❌ Phantom connection failed:", error);
+        throw error;
+      }
+    } else if (isMobile) {
+      // Mobile: Open Phantom app via universal link
+      // This will prompt Safari to open the Phantom app
+      console.log("📱 Mobile detected, opening Phantom app...");
+
+      const currentUrl = encodeURIComponent(window.location.href);
+      const phantomUrl = `https://phantom.app/ul/browse/${currentUrl}?ref=${currentUrl}`;
+
+      // Open the Phantom universal link
+      window.location.assign(phantomUrl);
+
+      // Reset connecting state since we're navigating away
+      setIsConnecting(false);
+      setConnectingWallet(null);
+    } else {
+      // Desktop without extension - prompt to install
+      console.log("⚠️ Phantom not installed");
+      window.open("https://phantom.app/", "_blank");
+      throw new Error(
+        "Phantom wallet not installed. Please install and refresh."
+      );
+    }
   };
 
   return (
@@ -314,7 +394,11 @@ export default function WalletModal() {
                       onClick={() => handleConnect(wallet.id)}
                       onMouseEnter={() => setHoveredWallet(wallet.id)}
                       onMouseLeave={() => setHoveredWallet(null)}
-                      disabled={isConnecting || isDisabledOnMobile}
+                      disabled={
+                        isConnecting ||
+                        isDisabledOnMobile ||
+                        wallet.id === "phantom"
+                      }
                       className={`
                         w-full flex items-center gap-3 p-3 rounded-2xl
                         transition-all duration-200 ease-out
@@ -342,7 +426,9 @@ export default function WalletModal() {
                           alt={wallet.name}
                           width={44}
                           height={44}
-                          className="w-full h-full object-contain rounded-lg"
+                          className={`w-full h-full object-contain rounded-lg ${
+                            wallet.id === "phantom" ? "opacity-50" : ""
+                          }`}
                         />
                       </div>
 
@@ -357,44 +443,52 @@ export default function WalletModal() {
                               ? "text-white font-black text-lg"
                               : "text-gray-900"
                           }
+                          ${wallet.id === "phantom" ? "opacity-50" : ""}
                         `}
                         >
                           {wallet.name}
-                          {wallet.id === "arweave" && (
-                            <span
-                              className={`text-sm font-medium
+                          {wallet.id === "arweave" ||
+                            (wallet.id === "phantom" && (
+                              <span
+                                className={`text-sm font-medium
                               ${
                                 isHovered && !isDisabledOnMobile
                                   ? "text-white/90"
                                   : "text-gray-400"
                               }`}
-                            >
-                              {" "}
-                              ({wallet.description})
-                            </span>
-                          )}
+                              >
+                                {" "}
+                                ({wallet.description})
+                              </span>
+                            ))}
                         </span>
 
                         {/* Mobile/Desktop indicator */}
-                        <span
-                          className={`text-xs flex items-center gap-1 mt-0.5
+                        {wallet.id !== "phantom" ? (
+                          <span
+                            className={`text-xs flex items-center gap-1 mt-0.5
                           ${
                             isHovered && !isDisabledOnMobile
                               ? "text-white/70"
                               : "text-gray-400"
                           }`}
-                        >
-                          {wallet.desktopOnly ? (
-                            <>
-                              <Monitor className="w-3 h-3" /> Desktop only
-                            </>
-                          ) : (
-                            <>
-                              <Smartphone className="w-3 h-3" /> Mobile &
-                              Desktop
-                            </>
-                          )}
-                        </span>
+                          >
+                            {wallet.desktopOnly ? (
+                              <>
+                                <Monitor className="w-3 h-3" /> Desktop only
+                              </>
+                            ) : (
+                              <>
+                                <Smartphone className="w-3 h-3" /> Mobile &
+                                Desktop
+                              </>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-xs flex items-center gap-1 mt-0.5 text-gray-400">
+                            Use Solflare or another wallet via WalletConnect
+                          </span>
+                        )}
                       </div>
 
                       {/* Loading indicator */}

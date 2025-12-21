@@ -210,6 +210,16 @@ export default function WalletButton() {
                 className="w-full h-full object-contain rounded-lg"
               />
             </div>
+            {/* <div className="w-6 h-6 rounded-sm overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
+              <Image
+                src="/wallets/Phantom-Icon_Transparent_Purple.svg"
+                alt="Phantom"
+                width={20}
+                height={20}
+                objectFit="cover"
+                className="w-full h-full object-contain rounded-lg"
+              />
+            </div> */}
             <div className="w-6 h-6 rounded-sm overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
               <Image
                 src="/wallets/Wander.png"

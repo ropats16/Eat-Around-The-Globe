@@ -56,6 +56,9 @@ declare global {
     arweaveWallet?: ArweaveWallet;
     ethereum?: EthereumProvider;
     solana?: PhantomProvider;
+    phantom?: {
+      solana?: PhantomProvider;
+    };
   }
 }
 
