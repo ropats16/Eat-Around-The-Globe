@@ -29,7 +29,7 @@ const metadata = {
   name: "Eat Around The Globe",
   description: "Discover and share food recommendations around the world",
   url: "https://eat-around-the-globe.vercel.app",
-  icons: ["https://eat-around-the-globe.vercel.app/icon-192x192.png"],
+  icons: ["https://eat-around-the-globe.vercel.app/globe-w-markers.png"],
 };
 
 // Create adapters

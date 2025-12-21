@@ -12,6 +12,7 @@
     "@ardrive/turbo-sdk": "^1.39.2",
     "@dha-team/arbundles": "^1.0.4",
     "@googlemaps/js-api-loader": "^2.0.2",
+    "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.0",

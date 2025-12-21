@@ -243,7 +243,7 @@ export default function WalletModal() {
       ],
       {
         name: "Eat Around The Globe",
-        logo: "https://eat-around-the-globe.vercel.app/icon-192x192.png",
+        logo: "https://eat-around-the-globe.vercel.app/globe-w-markers.png",
       }
     );
 

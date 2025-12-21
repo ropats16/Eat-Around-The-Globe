@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     title: "Eat Around The Globe",
   },
   icons: {
-    icon: "/icon-192x192.png",
-    apple: "/icon-192x192.png",
+    icon: "/globe-w-markers.png",
+    apple: "/globe-w-markers.png",
   },
 };
 

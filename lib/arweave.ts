@@ -217,7 +217,6 @@ async function createSolanaSigner(
       },
     },
     signMessage: async (message: Uint8Array) => {
-
       // Try using request method with solana_signMessage first
       if (originalProvider.request) {
         try {
@@ -351,7 +350,7 @@ async function ensureArweavePermissions(): Promise<void> {
       missingPermissions as ArweavePermission[],
       {
         name: "Eat Around The Globe",
-        logo: "https://eat-around-the-globe.vercel.app/icon-192x192.png",
+        logo: "https://eat-around-the-globe.vercel.app/globe-w-markers.png",
       }
     );
   }
