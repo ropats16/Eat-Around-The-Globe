@@ -109,7 +109,7 @@ export default function ActivityFeed() {
       <div className="bg-gray-900/90 backdrop-blur-md rounded-3xl shadow-2xl shadow-black/25 p-3 md:p-4 border border-gray-700/50 hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] transition-shadow duration-200">
         <div
           ref={scrollContainerRef}
-          className="h-40 md:h-48 max-h-[calc(100dvh-14rem)] md:max-h-48 overflow-y-auto space-y-2 custom-scrollbar"
+          className="h-24 md:h-48 max-h-[calc(100dvh-14rem)] md:max-h-48 overflow-y-auto space-y-2 custom-scrollbar"
         >
           <AnimatePresence mode="popLayout">
             {visibleRecommendations.map((rec, index) => {

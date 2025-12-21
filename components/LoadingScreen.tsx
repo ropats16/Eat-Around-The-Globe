@@ -15,7 +15,7 @@ export default function LoadingScreen() {
         if (prev >= 100) return 100; // Stop at 100
         return prev + 1;
       });
-    }, 15); // Faster updates for smoother animation
+    }, 50); // Faster updates for smoother animation
     return () => clearInterval(timer);
   }, []);
 
