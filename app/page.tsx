@@ -15,6 +15,7 @@ import {
 } from "@/lib/google-places";
 import { getAllRecommendations } from "@/lib/arweave-query";
 import { useFoodGlobeStore } from "@/lib/store";
+import type { FoodCategory } from "@/lib/types";
 import WalletButton from "@/components/WalletButton";
 import WalletModal from "@/components/WalletModal";
 import ProfileSetupModal from "@/components/ProfileSetupModal";
@@ -89,16 +90,7 @@ export default function Home() {
             const firstRec = recs[0];
             const foodPlace = convertGooglePlaceToFoodPlace(
               placeDetails,
-              (firstRec.data.category as
-                | "traditional"
-                | "street-food"
-                | "fine-dining"
-                | "fast-food"
-                | "dessert"
-                | "bakery"
-                | "seafood"
-                | "vegetarian"
-                | "drink") || "traditional",
+              (firstRec.data.category as FoodCategory) || "traditional",
               firstRec.data.dietaryTags as (
                 | "vegan"
                 | "vegetarian"
@@ -116,17 +108,7 @@ export default function Home() {
                 name: rec.recommenderName || `${rec.author.slice(0, 6)}...${rec.author.slice(-4)}`, // Use username if available, otherwise format wallet
                 walletAddress: rec.author, // Full wallet address for duplicate detection
                 caption: rec.data.caption || undefined,
-                category: rec.data.category as
-                  | "traditional"
-                  | "street-food"
-                  | "fine-dining"
-                  | "fast-food"
-                  | "dessert"
-                  | "bakery"
-                  | "seafood"
-                  | "vegetarian"
-                  | "drink"
-                  | undefined,
+                category: (rec.data.category as FoodCategory) || undefined,
                 dietaryInfo: rec.data.dietaryTags as
                   | (
                       | "vegan"

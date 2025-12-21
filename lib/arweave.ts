@@ -169,11 +169,7 @@ async function createEthereumSigner(
   const signer = new InjectedEthereumSigner(providerWrapper);
 
   // Initialize public key (triggers wallet popup to sign a message)
-  console.log(
-    "🔐 Initializing Ethereum signer (you may see a signature request)..."
-  );
   await signer.setPublicKey();
-  console.log("✅ Ethereum signer initialized");
 
   cachedEthereumSigner = signer;
   return signer;
@@ -193,12 +189,6 @@ async function createSolanaSigner(
     return cachedSolanaSigner;
   }
 
-  console.log("🔍 [SOLANA SIGNER] Analyzing provider:", {
-    type: typeof walletProvider,
-    keys: walletProvider ? Object.keys(walletProvider as object) : [],
-    isObject: walletProvider !== null && typeof walletProvider === "object",
-  });
-
   const originalProvider = walletProvider as {
     publicKey?: unknown;
     signMessage?: (message: Uint8Array) => Promise<{ signature: Uint8Array }>;
@@ -207,58 +197,6 @@ async function createSolanaSigner(
     features?: unknown;
     chains?: unknown;
   };
-
-  // Check if there's a nested wallet object (Reown wraps the actual wallet)
-  const providerWithWallet = originalProvider as {
-    wallet?: unknown;
-    provider?: unknown;
-  };
-
-  console.log("🔍 [SOLANA SIGNER] Provider info:", {
-    hasPublicKey: !!originalProvider.publicKey,
-    hasSignMessage: typeof originalProvider.signMessage === "function",
-    hasSignTransaction: typeof originalProvider.signTransaction === "function",
-    hasRequest: typeof originalProvider.request === "function",
-    publicKeyType: typeof originalProvider.publicKey,
-    hasWallet: !!providerWithWallet.wallet,
-    hasProvider: !!providerWithWallet.provider,
-    hasFeatures: !!originalProvider.features,
-    hasChains: !!originalProvider.chains,
-  });
-
-  // Log wallet features if available
-  if (originalProvider.features) {
-    const features = originalProvider.features as Record<string, unknown>;
-    console.log("🔍 [SOLANA SIGNER] Wallet features:", {
-      type: typeof features,
-      keys: Object.keys(features),
-      features: features,
-    });
-  }
-
-  // If there's a nested wallet or provider, log its structure
-  if (providerWithWallet.wallet) {
-    const wallet = providerWithWallet.wallet as Record<string, unknown>;
-    console.log("🔍 [SOLANA SIGNER] Nested wallet found:", {
-      type: typeof wallet,
-      keys: Object.keys(wallet),
-      hasSignMessage: typeof wallet.signMessage === "function",
-      hasPublicKey: !!wallet.publicKey,
-    });
-  }
-
-  if (providerWithWallet.provider) {
-    const nestedProvider = providerWithWallet.provider as Record<
-      string,
-      unknown
-    >;
-    console.log("🔍 [SOLANA SIGNER] Nested provider found:", {
-      type: typeof nestedProvider,
-      keys: Object.keys(nestedProvider),
-      hasSignMessage: typeof nestedProvider.signMessage === "function",
-      hasPublicKey: !!nestedProvider.publicKey,
-    });
-  }
 
   // Get the public key - it should be available on the provider
   if (!originalProvider.publicKey) {
@@ -272,28 +210,17 @@ async function createSolanaSigner(
         // Convert the public key to buffer format that arbundles expects
         const pk = originalProvider.publicKey as { toBytes?: () => Uint8Array };
         if (pk.toBytes) {
-          console.log("🔑 [SOLANA SIGNER] Using publicKey.toBytes()");
           return Buffer.from(pk.toBytes());
         }
         // Fallback: try to convert the public key directly
-        console.log(
-          "🔑 [SOLANA SIGNER] No toBytes() method, trying direct conversion"
-        );
         return Buffer.from(pk as Uint8Array);
       },
     },
     signMessage: async (message: Uint8Array) => {
-      console.log("✍️ [SOLANA SIGNER] signMessage called", {
-        messageLength: message.length,
-        messagePreview: Buffer.from(message.slice(0, 32)).toString("hex"),
-      });
 
       // Try using request method with solana_signMessage first
       if (originalProvider.request) {
         try {
-          console.log(
-            "🔐 [SOLANA SIGNER] Attempting solana_signMessage via request()..."
-          );
           const result = (await originalProvider.request({
             method: "solana_signMessage",
             params: {
@@ -301,9 +228,7 @@ async function createSolanaSigner(
             },
           })) as { signature: string };
 
-          console.log("✅ [SOLANA SIGNER] solana_signMessage succeeded");
           const signature = Buffer.from(result.signature, "base64");
-          console.log("🔑 [SOLANA SIGNER] Signature length:", signature.length);
           return signature;
         } catch (requestError) {
           console.error(
@@ -315,57 +240,11 @@ async function createSolanaSigner(
 
       // Fall back to direct signMessage
       if (originalProvider.signMessage) {
-        console.log(
-          "🔄 [SOLANA SIGNER] Falling back to provider.signMessage()..."
-        );
         try {
           const result = await originalProvider.signMessage(message);
 
           // Cast to unknown to allow runtime type checking across different wallet implementations
           const rawResult: unknown = result;
-
-          // === DIAGNOSTIC LOGGING ===
-          console.log("🔍 [SOLANA SIGNER] Raw result from signMessage:", {
-            resultType: typeof rawResult,
-            isNull: rawResult === null,
-            isUndefined: rawResult === undefined,
-            isUint8Array: rawResult instanceof Uint8Array,
-            isBuffer: Buffer.isBuffer(rawResult),
-            constructorName: (rawResult as { constructor?: { name?: string } })
-              ?.constructor?.name,
-            keys:
-              rawResult && typeof rawResult === "object"
-                ? Object.keys(rawResult)
-                : "N/A",
-            result: rawResult,
-          });
-
-          if (
-            rawResult &&
-            typeof rawResult === "object" &&
-            "signature" in rawResult
-          ) {
-            const sig = (rawResult as { signature: unknown }).signature;
-            console.log("🔍 [SOLANA SIGNER] Signature property:", {
-              sigType: typeof sig,
-              isUint8Array: sig instanceof Uint8Array,
-              isBuffer: Buffer.isBuffer(sig),
-              constructorName: (sig as { constructor?: { name?: string } })
-                ?.constructor?.name,
-              sigLength:
-                sig && typeof sig === "object" && "length" in sig
-                  ? (sig as ArrayLike<number>).length
-                  : "N/A",
-              sigKeys:
-                sig && typeof sig === "object" && !ArrayBuffer.isView(sig)
-                  ? Object.keys(sig)
-                  : "N/A",
-              sig: sig,
-            });
-          }
-          // === END DIAGNOSTIC LOGGING ===
-
-          console.log("✅ [SOLANA SIGNER] provider.signMessage() succeeded");
 
           // Case 1: result has a signature property
           if (
@@ -376,34 +255,21 @@ async function createSolanaSigner(
             const sig = (rawResult as { signature: unknown }).signature;
 
             if (sig instanceof Uint8Array) {
-              console.log(
-                "✅ [SOLANA SIGNER] Signature is Uint8Array, length:",
-                sig.length
-              );
               return sig;
             }
 
             if (Buffer.isBuffer(sig)) {
-              console.log(
-                "🔄 [SOLANA SIGNER] Signature is Buffer, converting..."
-              );
               return new Uint8Array(sig);
             }
 
             // Handle array-like objects (including {0: x, 1: y, ...} format)
             if (typeof sig === "object" && sig !== null) {
               if ("length" in sig) {
-                console.log(
-                  "🔄 [SOLANA SIGNER] Signature is array-like, converting..."
-                );
                 return Uint8Array.from(sig as ArrayLike<number>);
               }
               // Check if it's an object with numeric keys (like {0: 1, 1: 2, ...})
               const keys = Object.keys(sig);
               if (keys.length > 0 && keys.every((k) => !isNaN(Number(k)))) {
-                console.log(
-                  "🔄 [SOLANA SIGNER] Signature is object with numeric keys, converting..."
-                );
                 const arr = new Uint8Array(keys.length);
                 for (let i = 0; i < keys.length; i++) {
                   arr[i] = (sig as Record<string, number>)[i];
@@ -414,9 +280,6 @@ async function createSolanaSigner(
 
             // If signature is a base64 string
             if (typeof sig === "string") {
-              console.log(
-                "🔄 [SOLANA SIGNER] Signature is string (likely base64), converting..."
-              );
               return Uint8Array.from(Buffer.from(sig, "base64"));
             }
 
@@ -433,15 +296,10 @@ async function createSolanaSigner(
 
           // Case 2: result IS the signature directly (some wallets do this)
           if (rawResult instanceof Uint8Array) {
-            console.log(
-              "✅ [SOLANA SIGNER] Result IS Uint8Array, length:",
-              rawResult.length
-            );
             return rawResult;
           }
 
           if (Buffer.isBuffer(rawResult)) {
-            console.log("🔄 [SOLANA SIGNER] Result is Buffer, converting...");
             return new Uint8Array(rawResult);
           }
 
@@ -465,13 +323,8 @@ async function createSolanaSigner(
     },
   };
 
-  console.log(
-    "🔐 [SOLANA SIGNER] Creating InjectedSolanaSigner with wrapped provider..."
-  );
   try {
     const signer = new InjectedSolanaSigner(wrappedProvider);
-    console.log("✅ [SOLANA SIGNER] InjectedSolanaSigner created successfully");
-
     cachedSolanaSigner = signer;
     return signer;
   } catch (error) {
@@ -494,10 +347,6 @@ async function ensureArweavePermissions(): Promise<void> {
   );
 
   if (missingPermissions.length > 0) {
-    console.log(
-      "⚠️ Requesting missing Arweave permissions:",
-      missingPermissions
-    );
     await window.arweaveWallet.connect(
       missingPermissions as ArweavePermission[],
       {
@@ -546,9 +395,7 @@ async function createSignedDataItem(
   const dataItem = createData(jsonString, signer, { tags });
 
   // Sign it (triggers wallet popup)
-  console.log("✍️ Signing data item...");
   await dataItem.sign(signer);
-  console.log("✅ Data item signed, ID:", dataItem.id);
 
   return dataItem;
 }
@@ -561,8 +408,6 @@ async function createSignedDataItem(
  * Upload a signed data item to Arweave via Turbo
  */
 async function uploadDataItem(dataItem: DataItem): Promise<{ id: string }> {
-  console.log("📤 Uploading to Arweave...");
-
   // Get raw bytes and convert to ArrayBuffer for fetch
   const rawData = dataItem.getRaw();
   // Create a new ArrayBuffer and copy the data
@@ -586,7 +431,6 @@ async function uploadDataItem(dataItem: DataItem): Promise<{ id: string }> {
   }
 
   const result = await response.json();
-  console.log("✅ Uploaded to Arweave:", result.id);
 
   return { id: result.id };
 }
@@ -614,13 +458,6 @@ export async function uploadRecommendation(
   data: RecommendationData,
   config: UploadConfig
 ): Promise<{ id: string }> {
-  console.log("📤 [UPLOAD RECOMMENDATION] Starting upload:", {
-    placeId,
-    data,
-    walletType: config.walletType,
-    walletAddress: config.walletAddress,
-  });
-
   const signer = await createSigner({
     walletType: config.walletType,
     provider: config.provider,
@@ -660,16 +497,8 @@ export async function uploadRecommendation(
     }
   }
 
-  console.log("🏷️ [UPLOAD RECOMMENDATION] Tags:", tags);
-
   const dataItem = await createSignedDataItem(signer, data, tags);
   const result = await uploadDataItem(dataItem);
-
-  console.log("✅ [UPLOAD RECOMMENDATION] Upload complete:", {
-    txId: result.id,
-    placeId,
-    walletType: config.walletType,
-  });
 
   return result;
 }
@@ -800,8 +629,6 @@ export async function fetchUserProfile(
   walletAddress: string
 ): Promise<ProfileData | null> {
   try {
-    console.log("🔍 Fetching profile for:", walletAddress);
-
     const query = `
       query GetUserProfile($author: String!) {
         transactions(
@@ -839,25 +666,15 @@ export async function fetchUserProfile(
     const edges = result.data?.transactions?.edges || [];
 
     if (edges.length === 0) {
-      console.log("ℹ️ No profile found for:", walletAddress);
       return null;
     }
 
     const txId = edges[0].node.id;
-    const tags = edges[0].node.tags;
-    console.log("✅ [PROFILE FETCH] Found profile transaction:", {
-      txId,
-      tags,
-    });
 
     // Fetch the actual data
     const dataResponse = await fetch(`https://arweave.net/${txId}`);
     const profileData: ProfileData = await dataResponse.json();
 
-    console.log("✅ [PROFILE FETCH] Profile loaded:", {
-      profileData,
-      queriedAddress: walletAddress,
-    });
     return profileData;
   } catch (error) {
     console.error("❌ Failed to fetch profile:", error);

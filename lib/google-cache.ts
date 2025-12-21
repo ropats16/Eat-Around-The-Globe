@@ -54,11 +54,9 @@ export const getCachedPlaceData = (placeId: string): CachedPlaceData | null => {
     // Check if expired
     if (Date.now() > data.expiresAt) {
       localStorage.removeItem(key);
-      console.log(`🗑️ Cache expired for ${placeId}`);
       return null;
     }
 
-    console.log(`📦 Cache HIT for ${placeId}`);
     return data;
   } catch {
     return null;
@@ -86,7 +84,6 @@ export function setCachedPlace(
     };
 
     localStorage.setItem(key, JSON.stringify(cacheEntry));
-    console.log(`💾 Cached place ${placeId}`);
   } catch (error) {
     // localStorage might be full or unavailable
     console.warn("Failed to cache place data:", error);
@@ -119,10 +116,6 @@ export function clearExpiredCache(): void {
         localStorage.removeItem(key);
         cleared++;
       }
-    }
-
-    if (cleared > 0) {
-      console.log(`🧹 Cleared ${cleared} expired cache entries`);
     }
   } catch {
     // Fail silently

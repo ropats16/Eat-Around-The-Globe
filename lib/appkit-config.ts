@@ -47,9 +47,6 @@ try {
   );
   // Clear stale sessions - comment this out if you want to preserve sessions across refreshes
   wcKeys.forEach((key) => localStorage.removeItem(key));
-  if (wcKeys.length > 0) {
-    console.log(`Cleared ${wcKeys.length} stale WalletConnect session(s)`);
-  }
 } catch (error) {
   console.warn("Could not clear WalletConnect storage:", error);
 }
@@ -65,12 +62,6 @@ const includeWalletIds = [
   // "225affb176778569276e484e1b92637ad061b01e13a048b35a9d280c3b58970f", // Phantom
   "1ca0bdd4747578705b1939af023d120677c64fe6ca76add81fda36e350605e79", // Solflare
 ];
-
-console.log("🔧 AppKit Config - includeWalletIds:", includeWalletIds);
-console.log(
-  "🔧 AppKit Config - projectId:",
-  projectId ? "✅ Set" : "❌ Missing"
-);
 
 // Create and export AppKit instance
 export const appKit = projectId
@@ -90,8 +81,6 @@ export const appKit = projectId
       themeMode: "light",
     })
   : null;
-
-console.log("🔧 AppKit instance created:", appKit ? "✅ Success" : "❌ Failed");
 
 // Export for type inference
 export type AppKitInstance = typeof appKit;

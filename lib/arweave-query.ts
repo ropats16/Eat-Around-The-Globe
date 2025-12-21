@@ -588,18 +588,12 @@ export async function getUserLikes(
 export async function getAllRecommendations(
   limit = 100
 ): Promise<ParsedRecommendation[]> {
-  console.log("🔍 Fetching all recommendations from Arweave...");
-
   const data = await executeQuery<{
     transactions: { edges: TransactionEdge[] };
   }>(QUERY_ALL_RECOMMENDATIONS, {
     appName: APP_NAME,
     first: limit,
   });
-
-  console.log(
-    `📦 Found ${data.transactions.edges.length} recommendation transactions`
-  );
 
   const recommendations: ParsedRecommendation[] = [];
 
@@ -610,9 +604,6 @@ export async function getAllRecommendations(
     }
   }
 
-  console.log(
-    `✅ Successfully parsed ${recommendations.length} recommendations`
-  );
   return recommendations;
 }
 
