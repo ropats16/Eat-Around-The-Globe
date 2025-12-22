@@ -190,64 +190,24 @@ async function createSolanaSigner(
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // PRIORITY 1: Check for native Phantom browser extension
+  // Phantom wallet detection - NOT SUPPORTED
   // ═══════════════════════════════════════════════════════════════════════
-  if (typeof window !== "undefined" && window.solana?.isPhantom) {
-    console.log("🟣 [SOLANA SIGNER] Native Phantom detected!");
-
-    // Connect if not already connected
-    if (!window.solana.isConnected) {
-      console.log("🔗 [SOLANA SIGNER] Connecting to Phantom...");
-      await window.solana.connect();
-    }
-
-    if (!window.solana.publicKey) {
-      throw new Error("Phantom wallet not connected");
-    }
-
-    console.log(
-      "✅ [SOLANA SIGNER] Phantom connected:",
-      window.solana.publicKey.toString()
+  // Check if the actual provider being used is Phantom (not just if extension is installed)
+  if (
+    walletProvider &&
+    typeof walletProvider === "object" &&
+    "isPhantom" in walletProvider &&
+    (walletProvider as { isPhantom?: boolean }).isPhantom
+  ) {
+    console.error("❌ [SOLANA SIGNER] Phantom wallet detected but not supported");
+    throw new Error(
+      "Phantom wallet is not currently supported. Please use Solflare or another Solana wallet via WalletConnect."
     );
-
-    // Create wrapper for native Phantom - matches InjectedSolanaSigner interface
-    const phantomProvider = {
-      publicKey: {
-        toBuffer: () => {
-          const pk = window.solana!.publicKey! as unknown as {
-            toBytes: () => Uint8Array;
-          };
-          return Buffer.from(pk.toBytes());
-        },
-      },
-      signMessage: async (message: Uint8Array): Promise<Uint8Array> => {
-        console.log("✍️ [PHANTOM NATIVE] Signing message...", {
-          messageLength: message.length,
-        });
-
-        // Use Phantom's native signMessage - per docs: https://docs.phantom.com/solana/signing-a-message
-        const result = await window.solana!.signMessage(message, "utf8");
-
-        console.log("✅ [PHANTOM NATIVE] Message signed!", {
-          signatureLength: result.signature.length,
-        });
-
-        return result.signature;
-      },
-    };
-
-    const signer = new InjectedSolanaSigner(phantomProvider);
-    console.log("✅ [SOLANA SIGNER] Native Phantom signer created");
-
-    cachedSolanaSigner = signer;
-    return signer;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // PRIORITY 2: WalletConnect provider (Solflare, etc.)
+  // WalletConnect provider (Solflare, etc.)
   // ═══════════════════════════════════════════════════════════════════════
-  console.log("🔗 [SOLANA SIGNER] Using WalletConnect provider...");
-
   const originalProvider = walletProvider as {
     publicKey?: unknown;
     signMessage?: (message: Uint8Array) => Promise<{ signature: Uint8Array }>;
@@ -288,11 +248,8 @@ async function createSolanaSigner(
 
           const signature = Buffer.from(result.signature, "base64");
           return signature;
-        } catch (requestError) {
-          console.error(
-            "❌ [SOLANA SIGNER] solana_signMessage via request() failed:",
-            requestError
-          );
+        } catch {
+          // request() not supported, fall through to direct signMessage
         }
       }
 
@@ -453,7 +410,12 @@ async function createSignedDataItem(
   const dataItem = createData(jsonString, signer, { tags });
 
   // Sign it (triggers wallet popup)
-  await dataItem.sign(signer);
+  try {
+    await dataItem.sign(signer);
+  } catch (error) {
+    console.error("Failed to sign data item:", error);
+    throw error;
+  }
 
   return dataItem;
 }
@@ -516,11 +478,6 @@ export async function uploadRecommendation(
   data: RecommendationData,
   config: UploadConfig
 ): Promise<{ id: string }> {
-  const signer = await createSigner({
-    walletType: config.walletType,
-    provider: config.provider,
-  });
-
   const tags = createBaseTags(
     placeId,
     "recommendation",
@@ -555,6 +512,12 @@ export async function uploadRecommendation(
     }
   }
 
+  // Existing arbundles path for other wallets
+  const signer = await createSigner({
+    walletType: config.walletType,
+    provider: config.provider,
+  });
+
   const dataItem = await createSignedDataItem(signer, data, tags);
   const result = await uploadDataItem(dataItem);
 
@@ -569,11 +532,6 @@ export async function uploadLikeAction(
   action: "like" | "unlike",
   config: UploadConfig
 ): Promise<{ id: string }> {
-  const signer = await createSigner({
-    walletType: config.walletType,
-    provider: config.provider,
-  });
-
   const type: InteractionType = action === "like" ? "like" : "unlike";
   const tags = createBaseTags(
     placeId,
@@ -596,6 +554,13 @@ export async function uploadLikeAction(
   }
 
   const likeData: LikeData = { action };
+
+  // Existing arbundles path for other wallets
+  const signer = await createSigner({
+    walletType: config.walletType,
+    provider: config.provider,
+  });
+
   const dataItem = await createSignedDataItem(signer, likeData, tags);
   return uploadDataItem(dataItem);
 }
@@ -608,11 +573,6 @@ export async function uploadComment(
   text: string,
   config: UploadConfig
 ): Promise<{ id: string }> {
-  const signer = await createSigner({
-    walletType: config.walletType,
-    provider: config.provider,
-  });
-
   const tags = createBaseTags(
     placeId,
     "comment",
@@ -645,6 +605,12 @@ export async function uploadComment(
     timestamp: new Date().toISOString(),
   };
 
+  // Existing arbundles path for other wallets
+  const signer = await createSigner({
+    walletType: config.walletType,
+    provider: config.provider,
+  });
+
   const dataItem = await createSignedDataItem(signer, commentData, tags);
   return uploadDataItem(dataItem);
 }
@@ -656,11 +622,6 @@ export async function uploadProfile(
   data: ProfileData,
   config: UploadConfig
 ): Promise<{ id: string }> {
-  const signer = await createSigner({
-    walletType: config.walletType,
-    provider: config.provider,
-  });
-
   // Profile tags - no Place-ID needed
   const tags = [
     { name: "App-Name", value: APP_NAME },
@@ -675,6 +636,12 @@ export async function uploadProfile(
   if (data.username) {
     tags.push({ name: "Username", value: data.username });
   }
+
+  // Existing arbundles path for other wallets
+  const signer = await createSigner({
+    walletType: config.walletType,
+    provider: config.provider,
+  });
 
   const dataItem = await createSignedDataItem(signer, data, tags);
   return uploadDataItem(dataItem);

@@ -32,9 +32,10 @@ interface EthereumProvider {
 }
 
 // Solana Wallet (Phantom)
+// Compatible with both Phantom's native API and Turbo SDK's wallet adapter
 interface PhantomProvider {
   isPhantom?: boolean;
-  publicKey: { toString: () => string } | null;
+  publicKey: { toString: () => string; toBytes?: () => Uint8Array } | null;
   isConnected: boolean;
   connect: (opts?: {
     onlyIfTrusted?: boolean;
