@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
+import path from "path";
 
 const withPWA = withPWAInit({
   dest: "public",
@@ -13,12 +14,26 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  // Empty turbopack config to acknowledge we're using it
-  turbopack: {},
+  // Turbopack config - redirect pino to stub to avoid bundling thread-stream
+  turbopack: {
+    resolveAlias: {
+      // Use relative path for Turbopack
+      pino: "./lib/pino-stub.js",
+    },
+  },
   // Mark packages as external to prevent bundling issues with test files
   serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.externals = [...(config.externals || []), { canvas: "canvas" }];
+    
+    // Redirect pino to stub for client-side bundles (WalletConnect logging)
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        pino: path.resolve(__dirname, "lib/pino-stub.js"),
+      };
+    }
+    
     return config;
   },
   images: {
