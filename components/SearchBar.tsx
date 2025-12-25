@@ -16,6 +16,7 @@ import {
 } from "@/lib/google-places";
 import PlaceDetailsOverlay from "./PlaceDetailsOverlay";
 import { Recommender } from "@/lib/types";
+import { trackPlaceSearch, trackSearchSelect } from "@/lib/analytics";
 
 export default function SearchBar() {
   const [query, setQuery] = useState("");
@@ -61,8 +62,12 @@ export default function SearchBar() {
         const results = await getAutocompletePredictions(query);
         setPredictions(results);
         setShowSuggestions(true);
-      } catch (error) {
-        console.error("Autocomplete error:", error);
+
+        // Track search
+        if (results.length > 0) {
+          trackPlaceSearch(query, results.length);
+        }
+      } catch {
         setPredictions([]);
       } finally {
         setIsSearching(false);
@@ -72,7 +77,7 @@ export default function SearchBar() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const handleSelectPlace = async (placeId: string) => {
+  const handleSelectPlace = async (placeId: string, index: number = 0) => {
     try {
       setIsLoadingPlace(true);
       setShowSuggestions(false);
@@ -81,6 +86,9 @@ export default function SearchBar() {
       setSelectedPlace(placeDetails);
       setQuery("");
       setPredictions([]);
+
+      // Track search selection
+      trackSearchSelect(placeDetails.name || "Unknown", index);
 
       // Show temporary pin on globe and center on it
       const lat = placeDetails.geometry?.location?.lat();
@@ -93,8 +101,7 @@ export default function SearchBar() {
         });
         centerGlobe(lat, lng);
       }
-    } catch (error) {
-      console.error("Error loading place:", error);
+    } catch {
       alert("Failed to load place details. Please try again.");
     } finally {
       setIsLoadingPlace(false);
@@ -120,18 +127,11 @@ export default function SearchBar() {
         dietaryInfo
       );
 
-      console.log("🔍 DIAGNOSTIC: About to add food");
-      console.log("📍 FoodPlace category:", foodPlace.category);
-      console.log("📍 FoodPlace dietaryInfo:", foodPlace.dietaryInfo);
-      console.log("👤 Recommender category:", recommender.category);
-      console.log("👤 Recommender dietaryInfo:", recommender.dietaryInfo);
-
       // Pass recommender as second parameter - store will handle merging duplicates
       addFood(foodPlace, recommender);
       setSelectedPlace(null);
       setPreviewPlace(null); // Clear temporary pin
-    } catch (error) {
-      console.error("Error adding place:", error);
+    } catch {
       alert("Failed to add place. Please try again.");
     } finally {
       setIsAdding(false);
@@ -143,18 +143,6 @@ export default function SearchBar() {
     setSelectedPlace(null);
     setPreviewPlace(null); // Clear temporary pin
   };
-
-  // Diagnostic logging
-  useEffect(() => {
-    if (showSuggestions && predictions.length > 0) {
-      console.log("🔍 DIAGNOSTIC: Suggestions shown");
-      console.log("SearchRef dimensions:", {
-        width: searchRef.current?.offsetWidth,
-        scrollWidth: searchRef.current?.scrollWidth,
-        clientWidth: searchRef.current?.clientWidth,
-      });
-    }
-  }, [showSuggestions, predictions.length]);
 
   return (
     <div
@@ -201,7 +189,12 @@ export default function SearchBar() {
               {predictions.map((prediction) => (
                 <button
                   key={prediction.place_id}
-                  onClick={() => handleSelectPlace(prediction.place_id)}
+                  onClick={() =>
+                    handleSelectPlace(
+                      prediction.place_id,
+                      predictions.indexOf(prediction)
+                    )
+                  }
                   disabled={isAdding}
                   className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 sm:py-3 hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed group"
                 >

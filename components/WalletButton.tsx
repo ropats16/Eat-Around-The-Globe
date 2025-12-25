@@ -7,6 +7,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { resetTurboClients } from "@/lib/arweave";
 import { clearEthereumTurboClientCache } from "@/hooks/useEthereumTurboClient";
+import { trackWalletDisconnect } from "@/lib/analytics";
 
 // Wallet info mapping with consistent gradient shades
 const WALLET_INFO = {
@@ -52,6 +53,11 @@ export default function WalletButton() {
     setIsDisconnecting(true);
 
     try {
+      // Track disconnect before clearing state
+      if (walletType) {
+        trackWalletDisconnect(walletType);
+      }
+
       // Clear caches BEFORE disconnecting
       clearEthereumTurboClientCache();
       resetTurboClients();

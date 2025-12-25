@@ -343,14 +343,20 @@ async function parseRecommendationTransaction(
   try {
     const txData = await fetchTransactionData<RecommendationData>(node.id);
 
+    // Use block timestamp (Unix seconds) as the canonical timestamp
+    const blockTs = node.block?.timestamp;
+    const timestamp = blockTs
+      ? new Date(blockTs * 1000).toISOString()
+      : tagMap["Timestamp"] || tagMap["Version"];
+
     return {
       id: node.id,
       type: "recommendation",
       placeId: tagMap["Place-ID"],
       author: tagMap["Author"],
       authorChain: tagMap["Author-Chain"] as WalletType,
-      timestamp: tagMap["Timestamp"],
-      blockTimestamp: node.block?.timestamp,
+      timestamp,
+      blockTimestamp: blockTs,
       data: txData,
       // Extract new tag fields
       placeName: tagMap["Place-Name"],
@@ -400,14 +406,20 @@ export async function getPlaceInteractions(
     const tagMap = parseTags(node.tags);
     const type = tagMap["Type"] as InteractionType;
 
+    // Use block timestamp (Unix seconds) as the canonical timestamp
+    const blockTs = node.block?.timestamp;
+    const timestamp = blockTs
+      ? new Date(blockTs * 1000).toISOString()
+      : tagMap["Timestamp"] || tagMap["Version"];
+
     const baseInteraction: ArweaveInteraction = {
       id: node.id,
       type,
       placeId: tagMap["Place-ID"],
       author: tagMap["Author"],
       authorChain: tagMap["Author-Chain"] as WalletType,
-      timestamp: tagMap["Timestamp"],
-      blockTimestamp: node.block?.timestamp,
+      timestamp,
+      blockTimestamp: blockTs,
       // Extract new tag fields
       placeName: tagMap["Place-Name"],
       country: tagMap["Country"],

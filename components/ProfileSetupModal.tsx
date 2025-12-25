@@ -5,6 +5,7 @@ import { useFoodGlobeStore } from "@/lib/store";
 import { X, Loader2, User, ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { useArweaveUpload } from "@/hooks/useArweaveUpload";
+import { trackProfileCreate } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
@@ -19,7 +20,6 @@ export default function ProfileSetupModal() {
     closeProfileModal,
     walletType,
     walletAddress,
-    walletProvider,
     setUserProfile,
   } = useFoodGlobeStore();
 
@@ -38,8 +38,6 @@ export default function ProfileSetupModal() {
     setIsUploading(true);
 
     try {
-      console.log("📝 Creating user profile...");
-
       const profileData = {
         username: username.trim(),
         pfp: pfp.trim() || undefined,
@@ -47,28 +45,18 @@ export default function ProfileSetupModal() {
         walletAddress,
       };
 
-      console.log("📝 [PROFILE SAVE] Saving profile:", {
-        profileData,
-        walletType,
-        walletAddress,
-      });
-
       // Upload to Arweave
-      const result = await uploadProfile(profileData);
+      await uploadProfile(profileData);
 
-      console.log("✅ [PROFILE SAVE] Profile saved to Arweave:", {
-        txId: result.id,
-        walletAddress,
-        walletType,
-      });
+      // Track profile creation
+      trackProfileCreate(username.trim());
 
       // Cache in store
       setUserProfile(profileData);
 
       // Close modal
       closeProfileModal();
-    } catch (error) {
-      console.error("❌ Failed to create profile:", error);
+    } catch {
       alert("Failed to create profile. Please try again.");
     } finally {
       setIsUploading(false);

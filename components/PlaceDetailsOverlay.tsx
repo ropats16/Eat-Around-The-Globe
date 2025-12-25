@@ -27,6 +27,7 @@ import {
   DIETARY_OPTIONS,
   getDietaryConfig,
 } from "@/lib/category-config";
+import { trackRecommendationSubmit } from "@/lib/analytics";
 
 interface PlaceDetailsOverlayProps {
   place: google.maps.places.PlaceResult | null;
@@ -159,10 +160,6 @@ export default function PlaceDetailsOverlay({
     // If wallet connected, upload to Arweave FIRST before saving locally
     if (walletType && walletAddress && place?.place_id) {
       try {
-        console.log(
-          `📤 Uploading recommendation to Arweave via ${walletType}...`
-        );
-
         // Extract place information for tags
         const countryComponent = place.address_components?.find((comp) =>
           comp.types.includes("country")
@@ -179,7 +176,7 @@ export default function PlaceDetailsOverlay({
           );
         const city = cityComponent?.long_name || "Unknown";
 
-        const result = await uploadRecommendation(
+        await uploadRecommendation(
           place.place_id,
           {
             caption: recommenderCaption.trim(),
@@ -187,36 +184,31 @@ export default function PlaceDetailsOverlay({
             dietaryTags: selectedDietary,
           },
           {
-            // walletType,
-            // walletAddress,
-            // provider: walletProvider, // Pass provider for ETH/SOL
-            // placeInfo: {
             name: place.name || "Unnamed Place",
             country,
             countryCode,
             city,
             address: place.formatted_address,
-            // },
-            // profileInfo: userProfile
-            //   ? {
-            //       username: userProfile.username,
-            //     }
-            //   : undefined,
           }
         );
-        console.log("✅ Recommendation saved to Arweave:", result.id);
+
+        // Track recommendation submission
+        trackRecommendationSubmit(
+          place.place_id,
+          place.name || "Unnamed Place",
+          selectedCategory || "traditional",
+          country
+        );
 
         // Only save locally AFTER Arweave succeeds
         onSaveToMap(recommender);
-      } catch (arweaveError) {
-        console.error("❌ Failed to save to Arweave:", arweaveError);
+      } catch {
         // Don't save locally - show error to user
         alert("Failed to save recommendation to Arweave. Please try again.");
         return; // Don't proceed
       }
     } else {
       // No wallet connected - just save locally
-      console.log("ℹ️ No wallet connected - saving locally only");
       onSaveToMap(recommender);
     }
   };

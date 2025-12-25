@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useFoodGlobeStore } from "@/lib/store";
 import { useMemo, useRef, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function ActivityFeed() {
   const { foods, selectFood, centerGlobe } = useFoodGlobeStore();
@@ -176,6 +177,16 @@ export default function ActivityFeed() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Privacy link */}
+      <div className="mt-2 text-center">
+        <Link
+          href="/privacy"
+          className="text-[10px] text-gray-500 hover:text-gray-400 transition-colors"
+        >
+          Privacy Policy
+        </Link>
       </div>
 
       {/* Custom scrollbar styles */}

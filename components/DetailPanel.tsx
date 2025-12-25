@@ -20,6 +20,11 @@ import { useState, useEffect } from "react";
 import { useArweaveUpload } from "@/hooks/useArweaveUpload";
 import { getUserLikeStatus, getPlaceLikeCount } from "@/lib/arweave-query";
 import { getCategoryConfig, getDietaryConfig } from "@/lib/category-config";
+import {
+  trackPlaceView,
+  trackPlaceLike,
+  trackPlaceUnlike,
+} from "@/lib/analytics";
 
 export default function DetailPanel() {
   const {
@@ -75,6 +80,13 @@ export default function DetailPanel() {
     }
   }, [isDetailPanelOpen]);
 
+  // Track place view when panel opens
+  useEffect(() => {
+    if (isDetailPanelOpen && selectedFood?.placeId) {
+      trackPlaceView(selectedFood.placeId, selectedFood.name, "globe");
+    }
+  }, [isDetailPanelOpen, selectedFood?.placeId, selectedFood?.name]);
+
   // Auto-rotate recommenders carousel
   useEffect(() => {
     if (!selectedFood?.recommenders || selectedFood.recommenders.length <= 1) {
@@ -124,13 +136,14 @@ export default function DetailPanel() {
           address: selectedFood.address,
         }
       );
-      console.log(
-        `✅ ${
-          newLikedState ? "Liked" : "Unliked"
-        } saved to Arweave via ${walletType}!`
-      );
-    } catch (err) {
-      console.error("Failed to save like:", err);
+
+      // Track like/unlike
+      if (newLikedState) {
+        trackPlaceLike(selectedFood.placeId, selectedFood.name);
+      } else {
+        trackPlaceUnlike(selectedFood.placeId);
+      }
+    } catch {
       // Rollback on failure
       setIsLiked(!newLikedState);
       setLikeCount((prev) => prev + (newLikedState ? -1 : 1));
@@ -536,17 +549,17 @@ export default function DetailPanel() {
                 <button
                   onClick={handleLike}
                   disabled={isLikeLoading}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg transition-all duration-200 font-medium text-xs border ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg transition-all duration-200 font-medium text-xs border text-gray-700 ${
                     isLiked
-                      ? "bg-linear-to-br from-red-100 to-red-300 text-white border-red-500 hover:from-red-600 hover:to-red-700 shadow-md shadow-red-600/25"
-                      : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10"
+                      ? "bg-red-200 border-red-400 hover:bg-red-300 shadow-md shadow-red-600/25"
+                      : "bg-white border-gray-200 hover:border-red-300 hover:bg-red-50 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10"
                   } ${isLikeLoading ? "opacity-70 cursor-not-allowed" : ""}`}
                 >
                   {isLikeLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Heart
-                      className={`w-3.5 h-3.5 ${isLiked ? "fill-white" : ""}`}
+                      className={`w-3.5 h-3.5 ${isLiked ? "fill-red-400" : ""}`}
                     />
                   )}
                   <span>

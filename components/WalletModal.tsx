@@ -17,6 +17,7 @@ import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useFoodGlobeStore } from "@/lib/store"; // FIXED: correct import
 import { clearEthereumTurboClientCache } from "@/hooks/useEthereumTurboClient";
 import { ARWEAVE_PERMISSIONS, resetTurboClients } from "@/lib/arweave";
+import { trackWalletConnect } from "@/lib/analytics";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { Monitor, Smartphone, X, Loader2 } from "lucide-react";
@@ -71,6 +72,7 @@ export default function WalletModal() {
       }
 
       setWallet("ethereum", ethAccount.address);
+      trackWalletConnect("ethereum", ethAccount.address);
       setIntentionalEthConnect(false);
       closeWalletModal();
     }
@@ -93,7 +95,9 @@ export default function WalletModal() {
   // Handle Solana connection
   useEffect(() => {
     if (publicKey && intentionalSolanaConnect) {
-      setWallet("solana", publicKey.toString());
+      const solAddress = publicKey.toString();
+      setWallet("solana", solAddress);
+      trackWalletConnect("solana", solAddress);
       setIntentionalSolanaConnect(false);
       closeWalletModal();
     }
@@ -117,6 +121,7 @@ export default function WalletModal() {
       const address = await window.arweaveWallet.getActiveAddress();
 
       setWallet("arweave", address);
+      trackWalletConnect("arweave", address);
       closeWalletModal();
     } catch (error) {
       console.error("Failed to connect Wander:", error);

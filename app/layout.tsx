@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import Script from "next/script";
 import "./globals.css";
 import WalletProviders from "@/providers/WalletProviders";
 
@@ -45,6 +46,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* DataFast queue script - ensures events are captured before main script loads */}
+        <script
+          id="datafast-queue"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.datafast = window.datafast || function() {
+                window.datafast.q = window.datafast.q || [];
+                window.datafast.q.push(arguments);
+              };
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
@@ -53,6 +68,14 @@ export default function RootLayout({
           {children}
           <Toaster position="top-center" richColors />
         </WalletProviders>
+        <Script
+          defer
+          src="https://datafa.st/js/script.js"
+          data-website-id="dfid_vyw9HXDk9Vs7gwQysOXeD"
+          data-domain="eataroundtheglobe.com"
+          data-allow-localhost="true"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
