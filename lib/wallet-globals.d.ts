@@ -1,66 +1,42 @@
-// lib/wallet-globals.d.ts
+// types/global.d.ts
+// Global type declarations for wallet providers
 
-// Arweave Wallet (Wander / ArConnect)
-interface ArweaveWallet {
-  connect: (
-    permissions: string[],
-    appInfo?: { name?: string; logo?: string }
-  ) => Promise<void>;
-  disconnect: () => Promise<void>;
-  getActiveAddress: () => Promise<string>;
-  getActivePublicKey: () => Promise<string>;
-  sign: (
-    transaction: unknown,
-    options?: { saltLength?: number }
-  ) => Promise<unknown>;
-  signature: (
-    data: Uint8Array,
-    options?: { name?: string; saltLength?: number }
-  ) => Promise<Uint8Array>;
-  getPermissions: () => Promise<string[]>;
-}
+interface Window {
+  // Arweave wallet (Wander/ArConnect)
+  arweaveWallet?: {
+    connect(permissions: string[]): Promise<void>;
+    disconnect(): Promise<void>;
+    getActiveAddress(): Promise<string>;
+    getActivePublicKey(): Promise<string>;
+    getPermissions?(): Promise<string[]>;
+    sign(transaction: any): Promise<any>;
+    signDataItem(dataItem: any): Promise<ArrayBufferLike>;
+    dispatch(transaction: any): Promise<any>;
+    walletName?: string;
+    walletVersion?: string;
+  };
 
-// Ethereum Wallet (MetaMask)
-interface EthereumProvider {
-  isMetaMask?: boolean;
-  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-  on: (event: string, callback: (...args: unknown[]) => void) => void;
-  removeListener: (
-    event: string,
-    callback: (...args: unknown[]) => void
-  ) => void;
-}
+  // Ethereum wallet (MetaMask, Rainbow, etc.)
+  ethereum?: {
+    request(args: { method: string; params?: any[] }): Promise<any>;
+    on(event: string, handler: (...args: any[]) => void): void;
+    removeListener(event: string, handler: (...args: any[]) => void): void;
+    isMetaMask?: boolean;
+    isRainbow?: boolean;
+  };
 
-// Solana Wallet (Phantom)
-// Compatible with both Phantom's native API and Turbo SDK's wallet adapter
-interface PhantomProvider {
-  isPhantom?: boolean;
-  publicKey: { toString: () => string; toBytes?: () => Uint8Array } | null;
-  isConnected: boolean;
-  connect: (opts?: {
-    onlyIfTrusted?: boolean;
-  }) => Promise<{ publicKey: { toString: () => string } }>;
-  disconnect: () => Promise<void>;
-  signMessage: (
-    message: Uint8Array,
-    encoding?: string
-  ) => Promise<{ signature: Uint8Array }>;
-  signTransaction: (transaction: unknown) => Promise<unknown>;
-  signAllTransactions: (transactions: unknown[]) => Promise<unknown[]>;
-  on: (event: string, callback: (...args: unknown[]) => void) => void;
-  off: (event: string, callback: (...args: unknown[]) => void) => void;
-}
-
-// Extend the Window interface
-declare global {
-  interface Window {
-    arweaveWallet?: ArweaveWallet;
-    ethereum?: EthereumProvider;
-    solana?: PhantomProvider;
-    phantom?: {
-      solana?: PhantomProvider;
+  // Solana wallet (Phantom, Solflare, etc.)
+  solana?: {
+    connect(): Promise<{ publicKey: { toString(): string } }>;
+    disconnect(): Promise<void>;
+    signTransaction(transaction: any): Promise<any>;
+    signAllTransactions(transactions: any[]): Promise<any[]>;
+    signMessage(message: Uint8Array): Promise<{ signature: Uint8Array }>;
+    publicKey: {
+      toString(): string;
+      toBytes(): Uint8Array;
     };
-  }
+    isConnected?: boolean;
+    isPhantom?: boolean;
+  };
 }
-
-export {};

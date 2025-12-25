@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useFoodGlobeStore } from "@/lib/store";
 import { X, Loader2, User, ImageIcon } from "lucide-react";
 import { useState } from "react";
-import { uploadProfile } from "@/lib/arweave";
+import { useArweaveUpload } from "@/hooks/useArweaveUpload";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
@@ -28,6 +28,8 @@ export default function ProfileSetupModal() {
   const [bio, setBio] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
+  const { uploadProfile } = useArweaveUpload();
+
   const handleSubmit = async () => {
     if (!username.trim() || !walletType || !walletAddress) {
       return;
@@ -42,6 +44,7 @@ export default function ProfileSetupModal() {
         username: username.trim(),
         pfp: pfp.trim() || undefined,
         bio: bio.trim() || undefined,
+        walletAddress,
       };
 
       console.log("📝 [PROFILE SAVE] Saving profile:", {
@@ -51,11 +54,7 @@ export default function ProfileSetupModal() {
       });
 
       // Upload to Arweave
-      const result = await uploadProfile(profileData, {
-        walletType,
-        walletAddress,
-        provider: walletProvider,
-      });
+      const result = await uploadProfile(profileData);
 
       console.log("✅ [PROFILE SAVE] Profile saved to Arweave:", {
         txId: result.id,

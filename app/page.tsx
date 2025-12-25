@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Globe from "@/components/Globe";
 import Sidebar from "@/components/Sidebar";
@@ -21,6 +21,7 @@ import WalletModal from "@/components/WalletModal";
 import ProfileSetupModal from "@/components/ProfileSetupModal";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { fetchUserProfile } from "@/lib/arweave";
+import { useWalletAccountListener } from "@/hooks/useWalletAccountListener";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +33,6 @@ export default function Home() {
   const setIsLoadingProfile = useFoodGlobeStore(
     (state) => state.setIsLoadingProfile
   );
-  const mobileLayoutRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -50,8 +50,8 @@ export default function Home() {
           // Fetch recommendations from Arweave and hydrate with Google Places data
           await loadRecommendationsFromArweave();
         }
-      } catch (error) {
-        console.error("Failed to initialize:", error);
+      } catch {
+        // Initialization error - continue with degraded functionality
       } finally {
         // Add a small delay to show the loading animation
         setTimeout(() => setIsLoading(false), 1500);
@@ -60,11 +60,34 @@ export default function Home() {
 
     const loadRecommendationsFromArweave = async () => {
       try {
-        console.log("🌐 Loading recommendations from Arweave...");
-        const recommendations = await getAllRecommendations(50);
+        const allRecommendations = await getAllRecommendations(50);
+
+        // Test wallet addresses - only apply date cutoff to these
+        const TEST_WALLETS = [
+          process.env.NEXT_PUBLIC_TEST_WALLET_ETHEREUM?.toLowerCase(),
+          process.env.NEXT_PUBLIC_TEST_WALLET_SOLANA?.toLowerCase(),
+        ].filter(Boolean);
+
+        // Filter out test wallet recommendations before December 22, 2025
+        const CUTOFF_DATE = new Date("2025-12-22T00:00:00Z");
+        const recommendations = allRecommendations.filter((rec) => {
+          // Always include recommendations without a timestamp
+          if (!rec.timestamp) return true;
+
+          // Check if this is from a test wallet
+          const isTestWallet = TEST_WALLETS.includes(rec.author?.toLowerCase());
+
+          // Only apply date filter to test wallets
+          if (isTestWallet) {
+            const recDate = new Date(rec.timestamp);
+            return recDate >= CUTOFF_DATE;
+          }
+
+          // Keep all other users' recommendations
+          return true;
+        });
 
         if (recommendations.length === 0) {
-          console.log("📭 No recommendations found on Arweave");
           return;
         }
 
@@ -76,10 +99,6 @@ export default function Home() {
           existing.push(rec);
           byPlaceId.set(rec.placeId, existing);
         }
-
-        console.log(
-          `🗺️ Fetching details for ${byPlaceId.size} unique places...`
-        );
 
         // Fetch Google Places details for each unique placeId
         for (const [placeId, recs] of byPlaceId) {
@@ -105,8 +124,10 @@ export default function Home() {
             // Add each recommender
             for (const rec of recs) {
               addFood(foodPlace, {
-                name: rec.recommenderName || `${rec.author.slice(0, 6)}...${rec.author.slice(-4)}`, // Use username if available, otherwise format wallet
-                walletAddress: rec.author, // Full wallet address for duplicate detection
+                name:
+                  rec.recommenderName ||
+                  `${rec.author.slice(0, 6)}...${rec.author.slice(-4)}`,
+                walletAddress: rec.author,
                 caption: rec.data.caption || undefined,
                 category: (rec.data.category as FoodCategory) || undefined,
                 dietaryInfo: rec.data.dietaryTags as
@@ -123,16 +144,12 @@ export default function Home() {
                 dateRecommended: rec.timestamp,
               });
             }
-
-            console.log(`✅ Loaded: ${placeDetails.name}`);
-          } catch (err) {
-            console.warn(`⚠️ Failed to load place ${placeId}:`, err);
+          } catch {
+            // Skip places that fail to load
           }
         }
-
-        console.log("🎉 Finished loading recommendations from Arweave");
-      } catch (error) {
-        console.error("❌ Failed to load recommendations from Arweave:", error);
+      } catch {
+        // Silently handle load failures
       }
     };
 
@@ -148,21 +165,11 @@ export default function Home() {
       }
 
       setIsLoadingProfile(true);
-      console.log("🔍 Fetching user profile in background...");
 
       try {
         const profile = await fetchUserProfile(walletAddress);
-        if (profile) {
-          console.log("✅ Profile loaded:", profile);
-          setUserProfile(profile);
-        } else {
-          console.log(
-            "ℹ️ No profile found - user will be prompted on first save"
-          );
-          setUserProfile(null);
-        }
-      } catch (error) {
-        console.error("❌ Failed to fetch profile:", error);
+        setUserProfile(profile);
+      } catch {
         setUserProfile(null);
       } finally {
         setIsLoadingProfile(false);
@@ -172,29 +179,7 @@ export default function Home() {
     loadProfile();
   }, [walletAddress, setUserProfile, setIsLoadingProfile]);
 
-  // Diagnostic logging for mobile layout
-  useEffect(() => {
-    const logLayout = () => {
-      if (mobileLayoutRef.current) {
-        console.log("📱 DIAGNOSTIC: Mobile layout dimensions:", {
-          width: mobileLayoutRef.current.offsetWidth,
-          scrollWidth: mobileLayoutRef.current.scrollWidth,
-          clientWidth: mobileLayoutRef.current.clientWidth,
-        });
-      }
-    };
-
-    const observer = new MutationObserver(logLayout);
-    if (mobileLayoutRef.current) {
-      observer.observe(mobileLayoutRef.current, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-      });
-    }
-
-    return () => observer.disconnect();
-  }, []);
+  useWalletAccountListener();
 
   return (
     <>
@@ -216,7 +201,7 @@ export default function Home() {
           {/* Top Row - Hamburger, SearchBar, WalletButton */}
           <div className="absolute top-4 left-4 right-4 md:top-6 md:left-auto md:right-12 md:w-96 z-40 pointer-events-auto">
             {/* Mobile: Horizontal layout */}
-            <div ref={mobileLayoutRef} className="flex md:hidden items-center gap-2">
+            <div className="flex md:hidden items-center gap-2">
               <div className="shrink-0">
                 <HamburgerMenu />
               </div>

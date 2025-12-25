@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { uploadLikeAction } from "@/lib/arweave";
+import { useArweaveUpload } from "@/hooks/useArweaveUpload";
 import { getUserLikeStatus, getPlaceLikeCount } from "@/lib/arweave-query";
 import { getCategoryConfig, getDietaryConfig } from "@/lib/category-config";
 
@@ -32,6 +32,8 @@ export default function DetailPanel() {
     openWalletModal,
     userProfile,
   } = useFoodGlobeStore();
+
+  const { uploadLike } = useArweaveUpload();
 
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -111,25 +113,15 @@ export default function DetailPanel() {
     setLikeCount((prev) => prev + (newLikedState ? 1 : -1));
 
     try {
-      await uploadLikeAction(
+      await uploadLike(
         selectedFood.placeId,
         newLikedState ? "like" : "unlike",
         {
-          walletType,
-          walletAddress,
-          provider: walletProvider, // Pass provider for ETH/SOL
-          placeInfo: {
-            name: selectedFood.name,
-            country: selectedFood.country,
-            countryCode: selectedFood.countryCode,
-            city: selectedFood.city,
-            address: selectedFood.address,
-          },
-          profileInfo: userProfile
-            ? {
-                username: userProfile.username,
-              }
-            : undefined,
+          name: selectedFood.name,
+          country: selectedFood.country,
+          countryCode: selectedFood.countryCode,
+          city: selectedFood.city,
+          address: selectedFood.address,
         }
       );
       console.log(
@@ -307,7 +299,7 @@ export default function DetailPanel() {
                 {selectedFood.dietaryInfo.length > 0 && (
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                      Dietary Options:
+                      Dietary Options (Friendly):
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedFood.dietaryInfo.map((diet) => {
@@ -546,7 +538,7 @@ export default function DetailPanel() {
                   disabled={isLikeLoading}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg transition-all duration-200 font-medium text-xs border ${
                     isLiked
-                      ? "bg-linear-to-br from-red-500 to-red-600 text-white border-red-500 hover:from-red-600 hover:to-red-700 shadow-md shadow-red-600/25"
+                      ? "bg-linear-to-br from-red-100 to-red-300 text-white border-red-500 hover:from-red-600 hover:to-red-700 shadow-md shadow-red-600/25"
                       : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/10"
                   } ${isLikeLoading ? "opacity-70 cursor-not-allowed" : ""}`}
                 >

@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { Recommender, FoodCategory, DietaryTag } from "@/lib/types";
-import { uploadRecommendation } from "@/lib/arweave";
+import { useArweaveUpload } from "@/hooks/useArweaveUpload";
 import {
   CATEGORY_OPTIONS,
   DIETARY_OPTIONS,
@@ -44,10 +44,12 @@ export default function PlaceDetailsOverlay({
   const foods = useFoodGlobeStore((state) => state.foods);
   const walletAddress = useFoodGlobeStore((state) => state.walletAddress);
   const walletType = useFoodGlobeStore((state) => state.walletType);
-  const walletProvider = useFoodGlobeStore((state) => state.walletProvider);
+  // const walletProvider = useFoodGlobeStore((state) => state.walletProvider);
   const userProfile = useFoodGlobeStore((state) => state.userProfile);
   const openProfileModal = useFoodGlobeStore((state) => state.openProfileModal);
   const openWalletModal = useFoodGlobeStore((state) => state.openWalletModal);
+
+  const { uploadRecommendation } = useArweaveUpload();
 
   // Memoized duplicate detection - check if this place already exists
   const existingPlace = useMemo(() => {
@@ -119,7 +121,10 @@ export default function PlaceDetailsOverlay({
 
   // Auto-rotate recommenders carousel
   useEffect(() => {
-    if (!existingPlace?.recommenders || existingPlace.recommenders.length <= 1) {
+    if (
+      !existingPlace?.recommenders ||
+      existingPlace.recommenders.length <= 1
+    ) {
       return;
     }
 
@@ -142,9 +147,9 @@ export default function PlaceDetailsOverlay({
     }
 
     const recommender: Recommender = {
-      name: userProfile.username,
+      name: userProfile.username || "anon",
       walletAddress: walletAddress, // For duplicate detection
-      profilePicture: userProfile.pfp || undefined,
+      profilePicture: userProfile.avatar || undefined,
       caption: recommenderCaption.trim() || undefined,
       category: selectedCategory || undefined,
       dietaryInfo: selectedDietary.length > 0 ? selectedDietary : undefined,
@@ -182,21 +187,21 @@ export default function PlaceDetailsOverlay({
             dietaryTags: selectedDietary,
           },
           {
-            walletType,
-            walletAddress,
-            provider: walletProvider, // Pass provider for ETH/SOL
-            placeInfo: {
-              name: place.name || "Unnamed Place",
-              country,
-              countryCode,
-              city,
-              address: place.formatted_address,
-            },
-            profileInfo: userProfile
-              ? {
-                  username: userProfile.username,
-                }
-              : undefined,
+            // walletType,
+            // walletAddress,
+            // provider: walletProvider, // Pass provider for ETH/SOL
+            // placeInfo: {
+            name: place.name || "Unnamed Place",
+            country,
+            countryCode,
+            city,
+            address: place.formatted_address,
+            // },
+            // profileInfo: userProfile
+            //   ? {
+            //       username: userProfile.username,
+            //     }
+            //   : undefined,
           }
         );
         console.log("✅ Recommendation saved to Arweave:", result.id);
@@ -281,7 +286,10 @@ export default function PlaceDetailsOverlay({
                 {place.price_level && (
                   <div className="flex items-center gap-0.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5">
                     {Array.from({ length: place.price_level }).map((_, i) => (
-                      <span key={i} className="text-green-700 text-xs md:text-sm">
+                      <span
+                        key={i}
+                        className="text-green-700 text-xs md:text-sm"
+                      >
                         $
                       </span>
                     ))}
@@ -352,98 +360,103 @@ export default function PlaceDetailsOverlay({
             <div className="border-t border-gray-200"></div>
 
             {/* Existing Recommendations Carousel */}
-            {existingPlace?.recommenders && existingPlace.recommenders.length > 0 && (() => {
-              // Ensure valid index
-              const validIndex = Math.min(
-                currentRecommenderIndex,
-                existingPlace.recommenders.length - 1
-              );
-              const currentRecommender = existingPlace.recommenders[validIndex];
+            {existingPlace?.recommenders &&
+              existingPlace.recommenders.length > 0 &&
+              (() => {
+                // Ensure valid index
+                const validIndex = Math.min(
+                  currentRecommenderIndex,
+                  existingPlace.recommenders.length - 1
+                );
+                const currentRecommender =
+                  existingPlace.recommenders[validIndex];
 
-              // Find the original recommender (oldest timestamp)
-              const originalRecommender = existingPlace.recommenders.reduce(
-                (oldest, current) =>
-                  new Date(current.dateRecommended).getTime() <
-                  new Date(oldest.dateRecommended).getTime()
-                    ? current
-                    : oldest
-              );
+                // Find the original recommender (oldest timestamp)
+                const originalRecommender = existingPlace.recommenders.reduce(
+                  (oldest, current) =>
+                    new Date(current.dateRecommended).getTime() <
+                    new Date(oldest.dateRecommended).getTime()
+                      ? current
+                      : oldest
+                );
 
-              const isOriginal =
-                currentRecommender?.walletAddress ===
-                originalRecommender?.walletAddress;
+                const isOriginal =
+                  currentRecommender?.walletAddress ===
+                  originalRecommender?.walletAddress;
 
-              return (
-                <div className="p-3 bg-linear-to-br from-fuchsia-50/10 to-fuchsia-100/30 rounded-xl border border-fuchsia-200 shadow-sm shadow-black/5">
-                  <h3 className="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                    <Award className="w-3.5 h-3.5 md:w-4 md:h-4 text-fuchsia-600" />
-                    Already recommended by {existingPlace.recommenders.length}{" "}
-                    {existingPlace.recommenders.length === 1 ? "person" : "people"}
-                  </h3>
+                return (
+                  <div className="p-3 bg-linear-to-br from-fuchsia-50/10 to-fuchsia-100/30 rounded-xl border border-fuchsia-200 shadow-sm shadow-black/5">
+                    <h3 className="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <Award className="w-3.5 h-3.5 md:w-4 md:h-4 text-fuchsia-600" />
+                      Already recommended by {existingPlace.recommenders.length}{" "}
+                      {existingPlace.recommenders.length === 1
+                        ? "person"
+                        : "people"}
+                    </h3>
 
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentRecommenderIndex}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex items-start gap-3"
-                    >
-                      {currentRecommender.profilePicture ? (
-                        <Image
-                          src={currentRecommender.profilePicture}
-                          alt={currentRecommender.name}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12 rounded-xl object-cover shadow-md shadow-fuchsia-600/20"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-xl bg-linear-to-br from-fuchsia-200 to-fuchsia-400 flex items-center justify-center shadow-md shadow-fuchsia-600/20">
-                          <span className="text-white font-bold text-lg">
-                            {currentRecommender.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm md:text-base font-bold text-gray-900">
-                            {currentRecommender.name}
-                          </p>
-                          {isOriginal && (
-                            <span className="px-2 py-0.5 bg-fuchsia-200 text-fuchsia-800 text-[10px] md:text-xs rounded-md font-medium shadow-sm shadow-fuchsia-600/10">
-                              Original
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={currentRecommenderIndex}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className="flex items-start gap-3"
+                      >
+                        {currentRecommender.profilePicture ? (
+                          <Image
+                            src={currentRecommender.profilePicture}
+                            alt={currentRecommender.name}
+                            width={48}
+                            height={48}
+                            className="w-12 h-12 rounded-xl object-cover shadow-md shadow-fuchsia-600/20"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-linear-to-br from-fuchsia-200 to-fuchsia-400 flex items-center justify-center shadow-md shadow-fuchsia-600/20">
+                            <span className="text-white font-bold text-lg">
+                              {currentRecommender.name.charAt(0).toUpperCase()}
                             </span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm md:text-base font-bold text-gray-900">
+                              {currentRecommender.name}
+                            </p>
+                            {isOriginal && (
+                              <span className="px-2 py-0.5 bg-fuchsia-200 text-fuchsia-800 text-[10px] md:text-xs rounded-md font-medium shadow-sm shadow-fuchsia-600/10">
+                                Original
+                              </span>
+                            )}
+                          </div>
+                          {currentRecommender.caption && (
+                            <p className="text-xs md:text-sm text-gray-600 mt-1 italic leading-relaxed">
+                              &ldquo;{currentRecommender.caption}&rdquo;
+                            </p>
                           )}
                         </div>
-                        {currentRecommender.caption && (
-                          <p className="text-xs md:text-sm text-gray-600 mt-1 italic leading-relaxed">
-                            &ldquo;{currentRecommender.caption}&rdquo;
-                          </p>
-                        )}
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
+                      </motion.div>
+                    </AnimatePresence>
 
-                  {/* Carousel dots */}
-                  {existingPlace.recommenders.length > 1 && (
-                    <div className="flex justify-center gap-1.5 mt-4">
-                      {existingPlace.recommenders.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setCurrentRecommenderIndex(idx)}
-                          className={`h-1.5 rounded-full transition-all duration-200 ${
-                            idx === currentRecommenderIndex
-                              ? "bg-fuchsia-300/50 w-6 shadow-sm shadow-fuchsia-600/30"
-                              : "bg-fuchsia-200 w-1.5 hover:bg-fuchsia-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+                    {/* Carousel dots */}
+                    {existingPlace.recommenders.length > 1 && (
+                      <div className="flex justify-center gap-1.5 mt-4">
+                        {existingPlace.recommenders.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentRecommenderIndex(idx)}
+                            className={`h-1.5 rounded-full transition-all duration-200 ${
+                              idx === currentRecommenderIndex
+                                ? "bg-fuchsia-300/50 w-6 shadow-sm shadow-fuchsia-600/30"
+                                : "bg-fuchsia-200 w-1.5 hover:bg-fuchsia-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
             {/* Action Button / Form */}
             {!showForm ? (
@@ -479,11 +492,11 @@ export default function PlaceDetailsOverlay({
                 {/* User info display */}
                 {userProfile && (
                   <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200 shadow-sm shadow-black/5">
-                    {userProfile.pfp ? (
+                    {userProfile.avatar ? (
                       <div className="relative w-7 h-7">
                         <Image
-                          src={userProfile.pfp}
-                          alt={userProfile.username}
+                          src={userProfile.avatar}
+                          alt={userProfile.username || "anon"}
                           fill
                           className="rounded-md object-cover"
                         />
@@ -556,7 +569,7 @@ export default function PlaceDetailsOverlay({
                   <div>
                     <label className="text-[10px] md:text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                       <Leaf className="w-3 h-3" />
-                      Dietary Options (optional)
+                      Dietary Options (Friendly)
                     </label>
                     <div className="flex flex-wrap gap-1.5">
                       {DIETARY_OPTIONS.map((opt) => {

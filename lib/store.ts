@@ -270,11 +270,11 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
   },
 
   // === WALLET ACTIONS ===
-  setWallet: (type, address, provider) =>
+  setWallet: (type, address) =>
     set({
       walletType: type,
       walletAddress: address,
-      walletProvider: provider ?? null,
+      // walletProvider: provider ?? null,
       isConnecting: false,
       isWalletModalOpen: false,
     }),
@@ -283,7 +283,7 @@ export const useFoodGlobeStore = create<FoodGlobeStore>((set, get) => ({
     set({
       walletType: null,
       walletAddress: null,
-      walletProvider: null,
+      // walletProvider: null,
       userLikes: {}, // Clear user-specific data
       pendingUploads: new Set<string>(),
       userProfile: null, // Clear profile on disconnect

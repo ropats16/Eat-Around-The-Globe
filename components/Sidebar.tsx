@@ -357,7 +357,7 @@ export default function Sidebar() {
           {/* Dietary Filters */}
           <div>
             <h3 className="text-[10px] md:text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">
-              Dietary Options
+              Dietary Options (Friendly)
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {DIETARY_OPTIONS.map((diet) => {

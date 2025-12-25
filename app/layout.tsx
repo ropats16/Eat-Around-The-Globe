@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
-import { Providers } from "./providers";
 import "./globals.css";
+import WalletProviders from "@/providers/WalletProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,10 +49,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <Providers>
+        <WalletProviders>
           {children}
           <Toaster position="top-center" richColors />
-        </Providers>
+        </WalletProviders>
       </body>
     </html>
   );

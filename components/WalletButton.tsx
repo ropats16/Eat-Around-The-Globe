@@ -5,8 +5,8 @@ import { ChevronDown, LogOut, Loader2, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import Image from "next/image";
-import { useDisconnect } from "@reown/appkit/react";
-import { resetSigners } from "@/lib/arweave";
+import { resetTurboClients } from "@/lib/arweave";
+import { clearEthereumTurboClientCache } from "@/hooks/useEthereumTurboClient";
 
 // Wallet info mapping with consistent gradient shades
 const WALLET_INFO = {
@@ -42,72 +42,27 @@ export default function WalletButton() {
     isLoadingProfile,
   } = useFoodGlobeStore();
 
-  const { disconnect: disconnectAppKit } = useDisconnect();
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 
-  // Handle disconnect for all wallet types
+  // In handleDisconnect:
   const handleDisconnect = async () => {
-    console.log("=== DISCONNECT CLICKED ===");
-    console.log("1. isDisconnecting state:", isDisconnecting);
-    console.log("2. walletType:", walletType);
-    console.log("3. walletAddress:", walletAddress);
-
-    if (isDisconnecting) {
-      console.log("❌ Already disconnecting, returning early");
-      return;
-    }
-
+    if (isDisconnecting) return;
     setIsDisconnecting(true);
-    console.log("4. Set isDisconnecting to true");
 
     try {
-      // Reset cached signers
-      console.log("5. Calling resetSigners()...");
-      resetSigners();
-      console.log("6. resetSigners() completed");
+      // Clear caches BEFORE disconnecting
+      clearEthereumTurboClientCache();
+      resetTurboClients();
 
-      // If ETH/SOL, also disconnect from AppKit
-      if (walletType === "ethereum" || walletType === "solana") {
-        console.log("7. Wallet is ETH/SOL, attempting AppKit disconnect...");
-        console.log("8. disconnectAppKit function:", typeof disconnectAppKit);
-
-        try {
-          await disconnectAppKit();
-          console.log("✅ 9. AppKit disconnect completed");
-        } catch (appKitError) {
-          console.error("❌ 10. AppKit disconnect error:", appKitError);
-          throw appKitError;
-        }
-      } else {
-        console.log("7. Wallet is not ETH/SOL, skipping AppKit disconnect");
-      }
-
-      // Clear local state
-      console.log("11. Calling disconnectWallet()...");
       disconnectWallet();
-      console.log("12. disconnectWallet() completed");
-
-      console.log("13. Closing dropdown...");
       setShowDropdown(false);
-      console.log("✅ 14. DISCONNECT SUCCESSFUL");
     } catch (err) {
-      console.error("❌ DISCONNECT ERROR:", err);
-      console.error("Error details:", {
-        message: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
-      });
-
-      // Still clear local state even if AppKit disconnect fails
-      console.log("15. Error occurred, clearing local state anyway...");
+      console.error("Disconnect error:", err);
       disconnectWallet();
-      setShowDropdown(false);
-      console.log("16. Local state cleared despite error");
     } finally {
       setIsDisconnecting(false);
-      console.log("17. Set isDisconnecting to false");
-      console.log("=== DISCONNECT HANDLER COMPLETED ===");
     }
   };
 
@@ -253,17 +208,19 @@ export default function WalletButton() {
           className="w-11 h-11 flex items-center justify-center bg-white rounded-xl shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-200 border border-gray-100 z-50"
           aria-label="Wallet menu"
         >
-          {userProfile?.pfp ? (
+          {userProfile?.avatar ? (
             <Image
-              src={userProfile.pfp}
-              alt={userProfile.username}
+              src={userProfile.avatar}
+              alt={userProfile.username || walletAddress}
               width={28}
               height={28}
               className="w-7 h-7 rounded-full object-cover"
             />
           ) : userProfile ? (
             <div className="w-7 h-7 rounded-lg bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-              {userProfile.username.slice(0, 2).toUpperCase()}
+              {userProfile.username
+                ? userProfile.username.slice(0, 2).toUpperCase()
+                : walletAddress.slice(0, 2).toUpperCase()}
             </div>
           ) : (
             <Image
@@ -358,18 +315,20 @@ export default function WalletButton() {
           }`}
         >
           {/* Profile picture or wallet icon */}
-          {userProfile?.pfp ? (
+          {userProfile?.avatar ? (
             <div className="relative w-10 h-10 rounded-full overflow-hidden shadow-md shadow-black/10">
               <Image
-                src={userProfile.pfp}
-                alt={userProfile.username}
+                src={userProfile.avatar}
+                alt={userProfile.username || walletAddress}
                 fill
                 className="object-cover"
               />
             </div>
           ) : userProfile ? (
             <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-black/10">
-              {userProfile.username.slice(0, 2).toUpperCase()}
+              {userProfile.username
+                ? userProfile.username.slice(0, 2).toUpperCase()
+                : walletAddress.slice(0, 2).toUpperCase()}
             </div>
           ) : (
             <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">

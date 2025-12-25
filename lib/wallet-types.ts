@@ -1,17 +1,14 @@
 // lib/wallet-types.ts
+// Shared type definitions for wallet and interaction data
 
-// Which blockchain wallet is connected
+/**
+ * Supported wallet types
+ */
 export type WalletType = "arweave" | "ethereum" | "solana" | null;
 
-// Connection state
-export interface WalletState {
-  walletType: WalletType;
-  walletAddress: string | null;
-  isConnecting: boolean;
-  isWalletModalOpen: boolean;
-}
-
-// Arweave transaction types
+/**
+ * Interaction types that can be stored on Arweave
+ */
 export type InteractionType =
   | "recommendation"
   | "like"
@@ -19,46 +16,39 @@ export type InteractionType =
   | "comment"
   | "profile";
 
-// What we store in each Arweave transaction
+/**
+ * Recommendation data structure
+ */
 export interface RecommendationData {
-  caption: string;
   category: string;
-  dietaryTags: string[];
+  dietaryTags?: string[];
+  caption?: string;
+  rating?: number;
+  // Add any additional fields your app needs
 }
 
+/**
+ * Like/Unlike data structure
+ */
 export interface LikeData {
   action: "like" | "unlike";
 }
 
+/**
+ * Comment data structure
+ */
 export interface CommentData {
   text: string;
   timestamp: string;
 }
 
-// Cached user interactions (derived from Arweave queries)
-export interface UserInteractions {
-  likes: Record<string, boolean>; // placeId → true/false
-  comments: Record<string, string[]>; // placeId → array of comment tx IDs
-}
-
-// Tags we attach to every Arweave transaction
-export interface ArweaveTags {
-  "App-Name": string;
-  "Place-ID": string;
-  Type: InteractionType;
-  Author: string;
-  "Author-Chain": WalletType;
-  Timestamp: string;
-  "Content-Type": string;
-}
-
-// User profile data stored on Arweave
+/**
+ * User profile data structure
+ */
 export interface ProfileData {
-  username: string; // Display name (can be X handle if connected via X)
-  pfp?: string;
-  xConnected?: boolean; // True if username came from X OAuth
+  username?: string;
+  walletAddress: string;
   bio?: string;
-  // Future expansion fields:
-  // linkedWallets?: string[];
-  // preferences?: Record<string, unknown>;
+  avatar?: string;
+  // Add any additional profile fields your app needs
 }

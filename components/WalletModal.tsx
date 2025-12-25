@@ -1,211 +1,281 @@
+/**
+ * components/WalletModal.tsx
+ *
+ * Multi-chain wallet selection modal.
+ * Uses RainbowKit for Ethereum, Solana wallet adapters, and Wander for Arweave.
+ *
+ * FIXED: Uses useFoodGlobeStore (not useStore) to match your existing store.
+ */
+
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useFoodGlobeStore } from "@/lib/store";
-import { X, Loader2, Smartphone, Monitor } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useAccount, useDisconnect } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { useFoodGlobeStore } from "@/lib/store"; // FIXED: correct import
+import { clearEthereumTurboClientCache } from "@/hooks/useEthereumTurboClient";
+import { ARWEAVE_PERMISSIONS, resetTurboClients } from "@/lib/arweave";
+import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
-import {
-  useAppKit,
-  useAppKitAccount,
-  useAppKitProvider,
-  useAppKitState,
-} from "@reown/appkit/react";
-import { resetSigners } from "@/lib/arweave";
-
-// Wallet option configuration with official brand colors
-const WALLET_OPTIONS = [
-  {
-    id: "walletconnect" as const,
-    name: "WalletConnect",
-    description: "ETH, SOL, etc.",
-    icon: "/wallets/WalletConnect.svg",
-    bgColor: "bg-[#3396FF]",
-    hoverBg: "hover:bg-[#E8F4FF]",
-    ringColor: "ring-[#3396FF]",
-    installUrl: "https://walletconnect.com/",
-    supportsAppKit: true,
-    desktopOnly: false,
-  },
-  {
-    id: "arweave" as const,
-    name: "Wander",
-    description: "Arweave",
-    icon: "/wallets/Wander.png",
-    bgColor: "bg-[#6B57F9]",
-    hoverBg: "hover:bg-[#EBE0FF]",
-    ringColor: "ring-[#6B57F9]",
-    installUrl: "https://www.wander.app/",
-    supportsAppKit: false,
-    desktopOnly: true,
-  },
-];
+import { Monitor, Smartphone, X, Loader2 } from "lucide-react";
 
 export default function WalletModal() {
-  const {
-    isWalletModalOpen,
-    closeWalletModal,
-    isConnecting,
-    setIsConnecting,
-    setWallet,
-  } = useFoodGlobeStore();
+  // Use the full store with correct function names
+  const { isWalletModalOpen, closeWalletModal, setWallet } =
+    useFoodGlobeStore();
 
   const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
   const [hoveredWallet, setHoveredWallet] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const wanderReadyRef = useRef(false);
+  const [intentionalSolanaConnect, setIntentionalSolanaConnect] =
+    useState(false);
+  const [intentionalEthConnect, setIntentionalEthConnect] = useState(false);
+  const [showRainbowWarning, setShowRainbowWarning] = useState(false);
+  const hasHandledEthConnection = React.useRef(false);
 
-  // AppKit hooks
-  const { open: openAppKit } = useAppKit();
-  const { address: appKitAddress, isConnected: isAppKitConnected } =
-    useAppKitAccount();
-  const { walletProvider: ethProvider } = useAppKitProvider("eip155");
-  const { walletProvider: solProvider } = useAppKitProvider("solana");
-  const { open: isAppKitModalOpen } = useAppKitState();
+  // RainbowKit hooks for Ethereum
+  const { openConnectModal } = useConnectModal();
+  const ethAccount = useAccount();
+  const { disconnectAsync } = useDisconnect();
 
-  // Detect mobile
+  // Solana wallet hooks
+  const { setVisible: setSolanaModalVisible } = useWalletModal();
+  const {
+    publicKey,
+    connect: connectSolana,
+    wallets,
+    select,
+    wallet,
+  } = useWallet();
+
+  // Handle Ethereum connection from RainbowKit
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768 || "ontouchstart" in window);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Listen for Wander wallet injection
-  useEffect(() => {
-    if (window.arweaveWallet) {
-      wanderReadyRef.current = true;
-      return;
-    }
-
-    const handleWalletLoaded = () => {
-      wanderReadyRef.current = true;
-    };
-
-    window.addEventListener("arweaveWalletLoaded", handleWalletLoaded);
-    return () => {
-      window.removeEventListener("arweaveWalletLoaded", handleWalletLoaded);
-    };
-  }, []);
-
-  // Watch for AppKit modal close (user cancelled)
-  useEffect(() => {
-    // If AppKit modal was closed and we're still in connecting state, reset
-    // But wait 1000ms to give isAppKitConnected time to update (prevents race condition)
     if (
-      !isAppKitModalOpen &&
-      connectingWallet === "walletconnect" &&
-      !isAppKitConnected
+      intentionalEthConnect &&
+      ethAccount.isConnected &&
+      ethAccount.address &&
+      !hasHandledEthConnection.current
     ) {
-      const timeoutId = setTimeout(() => {
-        // If we reach here, it means isAppKitConnected didn't update to true within 1000ms
-        // This indicates the user truly cancelled (didn't scan QR or scan failed)
-        setIsConnecting(false);
-        setConnectingWallet(null);
-      }, 1000);
+      hasHandledEthConnection.current = true;
+      clearEthereumTurboClientCache();
 
-      // Cleanup: If isAppKitConnected becomes true before timeout fires,
-      // this effect re-runs and cleanup cancels the timeout
-      return () => {
-        clearTimeout(timeoutId);
-      };
-    }
-  }, [isAppKitModalOpen, connectingWallet, isAppKitConnected, setIsConnecting]);
-
-  // Watch for AppKit connection changes
-  useEffect(() => {
-    if (isAppKitConnected && appKitAddress && connectingWallet) {
-      // Determine wallet type based on address format
-      const isEthereum = appKitAddress.startsWith("0x");
-      const walletTypeDetected = isEthereum ? "ethereum" : "solana";
-      const provider = isEthereum ? ethProvider : solProvider;
-
-      // Use setTimeout to avoid synchronous setState in effect
-      setTimeout(() => {
-        setWallet(walletTypeDetected, appKitAddress, provider);
-        setConnectingWallet(null);
-        setIsConnecting(false);
+      // Check if user connected with Rainbow wallet
+      const connectorName = ethAccount.connector?.name;
+      if (connectorName === "Rainbow") {
+        // Show Rainbow warning modal instead of completing connection
+        setShowRainbowWarning(true);
+        setIntentionalEthConnect(false);
         closeWalletModal();
-      }, 0);
+        return;
+      }
+
+      setWallet("ethereum", ethAccount.address);
+      setIntentionalEthConnect(false);
+      closeWalletModal();
     }
   }, [
-    isAppKitConnected,
-    appKitAddress,
-    connectingWallet,
-    ethProvider,
-    solProvider,
-    setWallet,
-    setIsConnecting,
+    ethAccount.isConnected,
+    ethAccount.address,
+    ethAccount.connector?.name,
+    intentionalEthConnect,
     closeWalletModal,
+    setWallet,
   ]);
 
-  const handleConnect = async (walletId: "arweave" | "walletconnect") => {
-    const wallet = WALLET_OPTIONS.find((w) => w.id === walletId);
-
-    // Check if trying to use desktop-only wallet on mobile
-    if (wallet?.desktopOnly && isMobile) {
-      alert(`${wallet.name} wallet is only available on desktop browsers.`);
-      return;
+  // Reset handled flag when modal opens
+  useEffect(() => {
+    if (isWalletModalOpen) {
+      hasHandledEthConnection.current = false;
     }
+  }, [isWalletModalOpen]);
 
-    setIsConnecting(true);
-    setConnectingWallet(walletId);
+  // Handle Solana connection
+  useEffect(() => {
+    if (publicKey && intentionalSolanaConnect) {
+      setWallet("solana", publicKey.toString());
+      setIntentionalSolanaConnect(false);
+      closeWalletModal();
+    }
+  }, [publicKey, intentionalSolanaConnect, setWallet, closeWalletModal]);
 
+  /**
+   * Connect Wander (Arweave) wallet
+   */
+  const connectWander = async () => {
+    setConnectingWallet("arweave");
     try {
-      if (walletId === "arweave") {
-        // Arweave uses direct extension connection
-        await connectArweave();
-        closeWalletModal();
-      } else if (walletId === "walletconnect") {
-        // WalletConnect opens AppKit modal with filtered wallet options
-        // Reset any cached signers when switching wallets
-        resetSigners();
+      if (!window.arweaveWallet) {
+        window.open("https://wander.app", "_blank");
+        setConnectingWallet(null);
+        return;
+      }
 
-        // Open AppKit modal - it shows MetaMask, Solflare, etc. based on featuredWalletIds
-        // The useEffect above will detect if it's ethereum or solana based on address format
-        await openAppKit();
-        // Connection will be handled by the useEffect above which sets walletType to "ethereum" or "solana"
-      }
+      await window.arweaveWallet.connect(
+        ARWEAVE_PERMISSIONS as unknown as string[]
+      );
+      const address = await window.arweaveWallet.getActiveAddress();
+
+      setWallet("arweave", address);
+      closeWalletModal();
     } catch (error) {
-      console.error(`Failed to connect ${walletId}:`, error);
-      if (error instanceof Error && !error.message.includes("cancelled")) {
-        alert(`Failed to connect: ${error.message}`);
-      }
-      setIsConnecting(false);
+      console.error("Failed to connect Wander:", error);
+    } finally {
       setConnectingWallet(null);
     }
   };
 
-  const connectArweave = async () => {
-    if (!window.arweaveWallet) {
-      window.open("https://www.wander.app/", "_blank");
-      throw new Error(
-        "Wander wallet not installed. Please install and refresh."
-      );
-    }
-
-    await window.arweaveWallet.connect(
-      [
-        "ACCESS_ADDRESS",
-        "ACCESS_PUBLIC_KEY",
-        "SIGN_TRANSACTION",
-        "SIGNATURE",
-        "DISPATCH",
-      ],
-      {
-        name: "Eat Around The Globe",
-        logo: "https://eat-around-the-globe.vercel.app/globe-w-markers.png",
+  /**
+   * Connect Ethereum wallet via RainbowKit
+   */
+  const connectEthereumWallet = async () => {
+    try {
+      // If already connected, disconnect first
+      if (ethAccount.isConnected) {
+        clearEthereumTurboClientCache();
+        resetTurboClients();
+        await disconnectAsync();
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
-    );
 
-    const address = await window.arweaveWallet.getActiveAddress();
+      setIntentionalEthConnect(true);
 
-    setWallet("arweave", address);
-    setIsConnecting(false);
-    setConnectingWallet(null);
+      if (openConnectModal) {
+        openConnectModal();
+      }
+    } catch (error) {
+      console.error("Failed to open wallet selection:", error);
+      setIntentionalEthConnect(false);
+    }
   };
+
+  /**
+   * Connect Phantom (Solana) wallet
+   */
+  const connectPhantom = async () => {
+    try {
+      setIntentionalSolanaConnect(true);
+
+      // If already connected, use it
+      if (publicKey) {
+        setWallet("solana", publicKey.toString());
+        setIntentionalSolanaConnect(false);
+        closeWalletModal();
+        return;
+      }
+
+      // Try to find Phantom
+      const phantomWallet = wallets.find((w) => w.adapter.name === "Phantom");
+
+      if (phantomWallet) {
+        setConnectingWallet("solana");
+        select(phantomWallet.adapter.name);
+
+        // Wait for wallet selection
+        let attempts = 0;
+        while (attempts < 10) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          if (wallet?.adapter.name === "Phantom") {
+            try {
+              await connectSolana();
+              break;
+            } catch {
+              if (attempts === 9) {
+                console.error("Failed to connect after multiple attempts");
+              }
+            }
+          }
+          attempts++;
+        }
+      } else {
+        // Fallback to Solana modal
+        closeWalletModal();
+        setSolanaModalVisible(true);
+      }
+    } catch (error) {
+      console.error("Failed to connect Phantom:", error);
+      setIntentionalSolanaConnect(false);
+    } finally {
+      setConnectingWallet(null);
+    }
+  };
+
+  /**
+   * Handle switching from Rainbow to MetaMask
+   */
+  const handleSwitchToMetaMask = async () => {
+    try {
+      // Disconnect Rainbow
+      clearEthereumTurboClientCache();
+      resetTurboClients();
+      await disconnectAsync();
+      setShowRainbowWarning(false);
+
+      // Small delay then reopen RainbowKit
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      setIntentionalEthConnect(true);
+      hasHandledEthConnection.current = false;
+
+      if (openConnectModal) {
+        openConnectModal();
+      }
+    } catch (error) {
+      console.error("Failed to switch wallet:", error);
+    }
+  };
+
+  /**
+   * Continue with Rainbow for browse-only mode
+   */
+  const handleContinueWithRainbow = () => {
+    if (ethAccount.address) {
+      setWallet("ethereum", ethAccount.address);
+    }
+    setShowRainbowWarning(false);
+  };
+
+  /**
+   * Cancel and disconnect Rainbow
+   */
+  const handleCancelRainbow = async () => {
+    try {
+      clearEthereumTurboClientCache();
+      resetTurboClients();
+      await disconnectAsync();
+    } catch (error) {
+      console.error("Failed to disconnect:", error);
+    }
+    setShowRainbowWarning(false);
+  };
+
+  if (!isWalletModalOpen && !showRainbowWarning) return null;
+
+  const WALLET_OPTIONS = [
+    {
+      id: "ethereum",
+      name: "Ethereum",
+      description: "MetaMask tested",
+      function: connectEthereumWallet,
+      icon: "https://cryptologos.cc/logos/versions/ethereum-eth-logo-diamond-purple.svg?v=040",
+      desktopOnly: false,
+    },
+    {
+      id: "solana",
+      name: "Solana",
+      description: "Phantom, Solflare, etc.",
+      function: connectPhantom,
+      icon: "https://cryptologos.cc/logos/solana-sol-logo.svg?v=040",
+      desktopOnly: false,
+    },
+    {
+      id: "arweave",
+      name: "Arweave",
+      description: "Wander wallet",
+      function: connectWander,
+      icon: "/wallets/wander.png",
+      desktopOnly: true,
+    },
+  ];
 
   return (
     <AnimatePresence>
@@ -236,7 +306,7 @@ export default function WalletModal() {
                 </h2>
                 <button
                   onClick={closeWalletModal}
-                  disabled={isConnecting}
+                  disabled={connectingWallet !== null}
                   className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
                 >
                   <X className="w-4 h-4 text-gray-500" />
@@ -255,7 +325,7 @@ export default function WalletModal() {
                 {WALLET_OPTIONS.map((wallet, index) => {
                   const isThisConnecting = connectingWallet === wallet.id;
                   const isHovered = hoveredWallet === wallet.id;
-                  const isDisabledOnMobile = wallet.desktopOnly && isMobile;
+                  const isDisabledOnMobile = wallet.desktopOnly;
 
                   return (
                     <motion.button
@@ -263,19 +333,17 @@ export default function WalletModal() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      onClick={() => handleConnect(wallet.id)}
+                      onClick={wallet.function}
                       onMouseEnter={() => setHoveredWallet(wallet.id)}
                       onMouseLeave={() => setHoveredWallet(null)}
-                      disabled={isConnecting || isDisabledOnMobile}
+                      disabled={isThisConnecting}
                       className={`
                         w-full flex items-center gap-3 p-3 rounded-2xl
                         transition-all duration-200 ease-out
-                        disabled:cursor-not-allowed
-                        ${isDisabledOnMobile ? "opacity-50" : ""}
                         ${
-                          isHovered && !isConnecting && !isDisabledOnMobile
-                            ? `bg-blue-500/50 shadow-lg shadow-blue-500/25 scale-[1.02]`
-                            : "bg-gray-50 hover:bg-gray-100"
+                          isHovered && !isThisConnecting
+                            ? "bg-blue-500/50 shadow-lg shadow-blue-500/25 scale-[1.02]"
+                            : ""
                         }
                       `}
                     >
@@ -286,7 +354,12 @@ export default function WalletModal() {
                         flex items-center justify-center
                         transition-transform duration-200 shadow-md shadow-black/10
                         bg-white p-1
-                        ${isHovered && !isDisabledOnMobile ? "scale-110" : ""}
+                        ${isHovered ? "scale-110" : ""}
+                        ${
+                          wallet.id === "ethereum" || wallet.id === "solana"
+                            ? "p-2"
+                            : ""
+                        }
                       `}
                       >
                         <Image
@@ -305,7 +378,7 @@ export default function WalletModal() {
                           text-base font-semibold block
                           transition-colors duration-200
                           ${
-                            isHovered && !isDisabledOnMobile
+                            isHovered
                               ? "text-white font-black text-lg"
                               : "text-gray-900"
                           }
@@ -313,14 +386,11 @@ export default function WalletModal() {
                         >
                           {wallet.name}
                           <span
-                            className={`text-sm font-medium
+                            className={`text-sm font-medium ml-1
                               ${
-                                isHovered && !isDisabledOnMobile
-                                  ? "text-white/90"
-                                  : "text-gray-400/50"
+                                isHovered ? "text-white/90" : "text-gray-400/50"
                               }`}
                           >
-                            {" "}
                             ({wallet.description})
                           </span>
                         </span>
@@ -328,11 +398,7 @@ export default function WalletModal() {
                         {/* Mobile/Desktop indicator */}
                         <span
                           className={`text-xs flex items-center gap-1 mt-0.5
-                          ${
-                            isHovered && !isDisabledOnMobile
-                              ? "text-white/70"
-                              : "text-gray-400"
-                          }`}
+                          ${isHovered ? "text-white/70" : "text-gray-400"}`}
                         >
                           {wallet.desktopOnly ? (
                             <>
@@ -340,7 +406,7 @@ export default function WalletModal() {
                             </>
                           ) : (
                             <>
-                              <Smartphone className="w-3 h-3" /> Mobile &
+                              <Smartphone className="w-3 h-3" /> Mobile &amp;
                               Desktop
                             </>
                           )}
@@ -363,9 +429,73 @@ export default function WalletModal() {
               {/* Footer */}
               <div className="px-6 pb-6 pt-2">
                 <p className="text-xs text-gray-400 text-center leading-relaxed">
-                  {isMobile
-                    ? "Scan QR code or use deep link to connect your mobile wallet"
-                    : "By connecting, your interactions will be saved permanently on Arweave"}
+                  Rainbow 🌈 support is one of our top priorities and coming
+                  very soon! Please use MetaMask for now.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+
+      {/* Rainbow Wallet Warning Modal */}
+      {showRainbowWarning && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCancelRainbow}
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60]"
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-0 flex items-center justify-center z-[60] p-4 pointer-events-none"
+          >
+            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-[380px] pointer-events-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-6 pb-2">
+                <h2 className="text-lg font-bold text-gray-900">
+                  🌈 Rainbow Support Coming Soon
+                </h2>
+                <button
+                  onClick={handleCancelRainbow}
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-4">
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                  We&apos;re working on full Rainbow wallet support! For now,
+                  saving places and recommendations requires{" "}
+                  <span className="font-semibold text-gray-900">MetaMask</span>.
+                </p>
+
+                {/* Buttons */}
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={handleSwitchToMetaMask}
+                    className="w-full py-3 px-4 bg-linear-to-r from-blue-400 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    Switch to MetaMask
+                  </button>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 pb-6 pt-2">
+                <p className="text-xs text-gray-400 text-center leading-relaxed">
+                  Rainbow support is one of our top priorities and coming very
+                  soon!
                 </p>
               </div>
             </div>
