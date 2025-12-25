@@ -163,7 +163,7 @@ export default function WalletButton() {
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-sm overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
               <Image
-                src="/wallets/WalletConnect.svg"
+                src="https://cryptologos.cc/logos/versions/ethereum-eth-logo-diamond-purple.svg?v=040"
                 alt="WalletConnect"
                 width={24}
                 height={24}
@@ -171,16 +171,16 @@ export default function WalletButton() {
                 className="w-full h-full object-contain rounded-lg"
               />
             </div>
-            {/* <div className="w-6 h-6 rounded-sm overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
+            <div className="w-6 h-6 rounded-sm overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
               <Image
-                src="/wallets/Phantom-Icon_Transparent_Purple.svg"
+                src="https://cryptologos.cc/logos/solana-sol-logo.svg?v=040"
                 alt="Phantom"
                 width={20}
                 height={20}
                 objectFit="cover"
                 className="w-full h-full object-contain rounded-lg"
               />
-            </div> */}
+            </div>
             <div className="w-6 h-6 rounded-sm overflow-hidden shadow-md shadow-black/10 bg-white p-0.5">
               <Image
                 src="/wallets/Wander.png"

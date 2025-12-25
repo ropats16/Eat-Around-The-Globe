@@ -20,7 +20,7 @@ import { ARWEAVE_PERMISSIONS, resetTurboClients } from "@/lib/arweave";
 import { trackWalletConnect } from "@/lib/analytics";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { Monitor, Smartphone, X, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 
 export default function WalletModal() {
   // Use the full store with correct function names
@@ -260,25 +260,25 @@ export default function WalletModal() {
       id: "ethereum",
       name: "Ethereum",
       description: "MetaMask tested",
+      hint: "🌈 Rainbow support coming soon!",
       function: connectEthereumWallet,
       icon: "https://cryptologos.cc/logos/versions/ethereum-eth-logo-diamond-purple.svg?v=040",
-      desktopOnly: false,
     },
     {
       id: "solana",
       name: "Solana",
-      description: "Phantom, Solflare, etc.",
+      description: "Phantom, Solflare & more",
+      hint: "Works via both Desktop & Mobile browsers",
       function: connectPhantom,
       icon: "https://cryptologos.cc/logos/solana-sol-logo.svg?v=040",
-      desktopOnly: false,
     },
     {
       id: "arweave",
       name: "Arweave",
       description: "Wander wallet",
+      hint: "Open in Desktop or Wander's app browser",
       function: connectWander,
-      icon: "/wallets/wander.png",
-      desktopOnly: true,
+      icon: "/wallets/Wander.png",
     },
   ];
 
@@ -330,7 +330,6 @@ export default function WalletModal() {
                 {WALLET_OPTIONS.map((wallet, index) => {
                   const isThisConnecting = connectingWallet === wallet.id;
                   const isHovered = hoveredWallet === wallet.id;
-                  const isDisabledOnMobile = wallet.desktopOnly;
 
                   return (
                     <motion.button
@@ -400,21 +399,12 @@ export default function WalletModal() {
                           </span>
                         </span>
 
-                        {/* Mobile/Desktop indicator */}
+                        {/* Hint text */}
                         <span
-                          className={`text-xs flex items-center gap-1 mt-0.5
+                          className={`text-xs block mt-0.5
                           ${isHovered ? "text-white/70" : "text-gray-400"}`}
                         >
-                          {wallet.desktopOnly ? (
-                            <>
-                              <Monitor className="w-3 h-3" /> Desktop only
-                            </>
-                          ) : (
-                            <>
-                              <Smartphone className="w-3 h-3" /> Mobile &amp;
-                              Desktop
-                            </>
-                          )}
+                          {wallet.hint}
                         </span>
                       </div>
 
@@ -434,8 +424,8 @@ export default function WalletModal() {
               {/* Footer */}
               <div className="px-6 pb-6 pt-2">
                 <p className="text-xs text-gray-400 text-center leading-relaxed">
-                  Rainbow 🌈 support is one of our top priorities and coming
-                  very soon! Please use MetaMask for now.
+                  On mobile? Your wallet app will open automatically for
+                  signing. Or open in respective wallet's in-app browsers.
                 </p>
               </div>
             </div>

@@ -22,10 +22,10 @@ const nextConfig: NextConfig = {
     },
   },
   // Mark packages as external to prevent bundling issues with test files
-  serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
+  serverExternalPackages: ["pino", "pino-pretty", "thread-stream"],
   webpack: (config, { isServer }) => {
     config.externals = [...(config.externals || []), { canvas: "canvas" }];
-    
+
     // Redirect pino to stub for client-side bundles (WalletConnect logging)
     if (!isServer) {
       config.resolve.alias = {
@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
         pino: path.resolve(__dirname, "lib/pino-stub.js"),
       };
     }
-    
+
     return config;
   },
   images: {
